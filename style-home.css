@@ -1,0 +1,1120 @@
+/* ================================================================
+   D. H. Chen Foundation — Home V3 (Figma "R2 / OPT2_01_Home_01_Desktop")
+   Loaded ON TOP of style.css, which still supplies the shared base:
+   reset, tokens, nav shell, mobile menu, search overlay, cursor, reveal.
+   Everything new lives under its own namespace (.hero-v3, .journey,
+   .news-v3, .ventures, .colourbar, .footer-v3) so none of the legacy
+   home sections — still used by Listing/Articles/index_tc — are touched.
+
+   Canvas: 1920 × 7185, 50px margins. Sizes below are the Figma values;
+   the oversized serif type is clamped so it scales down cleanly.
+
+   R2 vs R1: the blurred gradient canvas is gone — one flat peach
+   (#fff2e9) runs the whole page, the body copy moved from black-50%
+   to a flat #808080, and the banner + lower half were re-laid-out.
+   ================================================================ */
+
+:root {
+  --hero-giant: clamp(44px, 7.81vw, 150px);  /* Figma 150 / 150 */
+  --t-lede:     clamp(24px, 1.98vw, 38px);   /* Figma 38 / 55 */
+  --t-title:    clamp(46px, 5.2vw, 100px);   /* Figma 100 */
+  --t-heading:  clamp(34px, 4.17vw, 80px);   /* Figma 80 / 90 */
+  --panel-pad-x: clamp(24px, 5.5vw, 105px);  /* text inset inside a panel */
+  --c-grey:     #808080;                     /* R2 body/heading grey */
+}
+
+/* The intro, the mobile menu and the search overlay all lock the page with
+   `overflow: hidden`, which takes the scrollbar away — and puts it back on
+   release, shoving the whole layout sideways by its width.
+
+   Styling the scrollbar (::-webkit-scrollbar) would NOT fix this: a classic
+   scrollbar still occupies layout width whatever it looks like. Nor does
+   `scrollbar-gutter: stable` — Chrome stops reserving the gutter once the
+   viewport's overflow is hidden, which is exactly the locked state. So the
+   width the bar leaves behind is given back as padding instead; script §0b
+   measures it into `--sbw`. */
+html.lock-scroll { padding-right: var(--sbw, 0px); }
+
+/* Home V3 paints its own canvas — one flat peach, no gradient wash */
+body.home-v3 {
+  background-image: none;
+  background-color: var(--c-bg);
+}
+
+.wrap {
+  max-width: 1920px;
+  margin: 0 auto;
+  padding: 0 var(--gm);
+}
+
+
+/* ================================================================
+   00 — NAVIGATION (V3 layout: search · logo · stacked menu)
+   ================================================================ */
+.nav--v3 .nav__inner {
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  height: auto;
+  padding-top: 32px;
+  padding-bottom: 24px;
+}
+.nav--v3 .nav__actions { grid-column: 1; grid-row: 1; justify-content: flex-start; gap: 28px; }
+.nav--v3 .nav__logo    { grid-column: 2; grid-row: 1; }
+.nav--v3 .nav__menu    { grid-column: 3; grid-row: 1; }
+
+.nav--v3 .nav__menu {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;                 /* 34px baseline pitch − 22px line box */
+}
+.nav--v3 .nav__link {
+  font-size: 18px;
+  line-height: 22px;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: var(--c-grey);
+}
+
+/* R2 draws the top-bar search glyph in the same #808080 as the menu.
+   invert(50%) maps the icon's pure black to exactly #808080; the hover
+   filter in style.css still takes it to brand orange. */
+.nav--v3 .nav__search-btn img { filter: invert(50%); }
+
+/* the seal only ever shows inside the sticky pill */
+.nav__seal { display: none; }
+.nav__seal img { width: 26px; height: 39.4px; display: block; }
+
+/* Sticky bar (Figma R2 "stick", node 12014-44): the whole nav collapses
+   into a single white 180 × 61 pill on the right — seal · search ·
+   hamburger. The bar itself stays transparent, so the peach page and the
+   banner's colour bar keep reading through it.
+   Desktop only: below 768px the nav already runs its own mobile layout,
+   and these rules outrank it on specificity, so they must be scoped. */
+@media (min-width: 768px) {
+  /* Until it sticks the bar is part of the page, so it scrolls up and out
+     of frame like any other content instead of vanishing in place. */
+  .nav--v3 { position: absolute; }
+  .nav--v3.nav--scrolled { position: fixed; background: transparent; box-shadow: none; }
+  .nav--v3.nav--scrolled .nav__inner {
+    height: 92.8px;
+    padding-top: 0;
+    padding-bottom: 0;
+    align-items: center;
+  }
+  /* centred lockup and the stacked menu both drop out */
+  .nav--v3.nav--scrolled .nav__logo,
+  .nav--v3.nav--scrolled .nav__menu,
+  .nav--v3.nav--scrolled .nav__lang { display: none; }
+
+  .nav--v3.nav--scrolled .nav__actions {
+    grid-column: 1 / -1;
+    justify-self: end;
+    align-items: center;
+    height: 61.4px;
+    padding: 0 19.7px;
+    gap: 21.9px;                /* search → hamburger */
+    background: var(--c-white);
+    /* drops in from above, a beat after the bar has scrolled off */
+    animation: nav-pill-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.14s both;
+  }
+  @keyframes nav-pill-in {
+    from { opacity: 0; translate: 0 -26px; }
+    to   { opacity: 1; translate: 0 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nav--v3.nav--scrolled .nav__actions { animation: none; }
+  }
+  .nav--v3.nav--scrolled .nav__seal { display: block; margin-right: 8.5px; }
+  .nav--v3.nav--scrolled .nav__search-btn { width: 22px; height: 22px; margin-right: 0; }
+  /* inside the white pill the glyph goes back to black, as the design draws it */
+  .nav--v3.nav--scrolled .nav__search-btn img { width: 22px; height: 22px; filter: none; }
+  .nav--v3.nav--scrolled .nav__hamburger { display: block; }
+  .nav--v3.nav--scrolled .nav__hamburger img { width: 40.7px; }
+}
+
+
+/* ================================================================
+   01 — LANDING (hero + the four B panels on the flat peach canvas)
+   ================================================================ */
+.landing {
+  position: relative;
+  isolation: isolate;
+  /* R2 dropped the blurred blob canvas — the landing is simply the page's
+     flat peach, with the white panels reading as cards on top of it. */
+  background: transparent;
+}
+
+
+/* ── Hero ──────────────────────────────────────────────────────────
+   Figma "landing" 1920 × 1000: headline top 157 / left 50, the
+   description + #Compassion lockup sitting on one row near the
+   bottom, and the thick colour bar closing the frame at y 988.
+   The banner owns a full screen, so the bar always lands on the
+   bottom edge of the viewport; on short screens the section simply
+   grows past 100svh rather than clipping the copy. */
+.hero-v3 {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: clamp(96px, 8.18vw, 157px) var(--gm) 0;
+  text-align: left;
+}
+.hero-v3__title {
+  font-family: var(--f-serif);
+  font-weight: 400;
+  font-size: var(--hero-giant);
+  line-height: 1;
+  color: var(--c-grey);
+  max-width: 1661px;
+}
+.hero-v3__line { display: block; }
+.hero-v3__accent { color: var(--c-orange); }
+
+/* description far left · lockup far right, both sitting on the baseline */
+.hero-v3__foot {
+  margin-top: auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 40px;
+  padding-bottom: clamp(48px, 4.32vw, 83px);
+}
+.hero-v3__body {
+  font-family: var(--f-sans);
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 30px;
+  color: var(--c-grey);
+  max-width: 577px;
+}
+.hero-v3__mark { width: clamp(180px, 14vw, 270px); height: auto; }
+
+/* the banner's own colour bar is the thick one (12.4px) and it closes the
+   frame with no gap; the footer keeps the 3px hairline. Declared with the
+   doubled class so it outranks the base `.colourbar` further down. */
+.colourbar.colourbar--hero { height: 12.4px; margin-top: 0; }
+
+/* landing sequence (script §13) — the headline lifts in, then the
+   description + lockup cascade off it.
+   NB: the colour bar is left out — it owns its own clip-path wipe
+   (`data-motion="bar"`), and an opacity/translate here would fight
+   that transition list. */
+body.lp-h1 .hero-v3__title { opacity: 0; translate: 0 34px; }
+body.lp-h2 .hero-v3__foot  { opacity: 0; translate: 0 22px; }
+.hero-v3__title,
+.hero-v3__foot { transition: opacity 0.9s ease, translate 0.9s ease; }
+
+/* The intro flies its own copy of the lockup into this exact spot, so the
+   real nav logo must not slide in behind it — it just cross-fades on as
+   the flying one is removed. The menu and actions keep their drop-in. */
+/* On this page `lp-nav` only holds the menu and the actions back — the
+   logo is driven by [data-intro] below, because it performs the intro
+   itself rather than being handed a copy. */
+body.home-v3.lp-nav .nav__logo { opacity: 1; translate: none; }
+
+
+/* ================================================================
+   01b — LANDING OPENING (script §13)
+   NB: namespaced `.opening`, not `.intro` — style.css already owns a
+   legacy `.intro` section whose gradient would paint straight onto it.
+   Motto types on → fades → seal appears → seal slides left as the
+   wordmark opens → the finished lockup rises into the header.
+   Figma R2: OPT1_01_Home_00_01 / _00_04 / _00_05, all 1920 × 1000.
+   ================================================================ */
+/* `body.has-custom-cursor` sets `cursor: none`, and the overlay sits above
+   the dot's own z-index (9999) — so without this the intro would show no
+   pointer at all. Keep the dot on top for the whole sequence. */
+body.home-v3 .cursor { z-index: 100001; }
+
+.opening {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  background-color: var(--c-bg);
+  pointer-events: none;
+  /* only the peach backdrop clears — the flying lockup stays solid all the
+     way up, so it can hand over to the real nav logo without a blink */
+  transition: background-color 0.7s ease;
+}
+.opening--out { background-color: rgba(255, 242, 233, 0); }
+
+/* the motto sits dead centre of the frame, as it does in the design */
+.opening__motto {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+}
+
+/* ── act one: the motto ─────────────────────────────────────────── */
+.opening__motto {
+  width: min(664px, calc(100vw - 2 * var(--gm)));
+  transition: opacity 0.68s ease;
+}
+.opening__motto--out { opacity: 0; }
+.opening__caret {
+  display: inline-block;
+  width: 0.028em;
+  height: 0.72em;
+  margin-left: 0.06em;
+  vertical-align: baseline;
+  background: currentColor;
+  animation: typer-blink 1.05s steps(1, end) infinite;
+}
+.opening__quote {
+  font-family: var(--f-serif);
+  font-weight: 400;
+  font-size: clamp(30px, 3.13vw, 60px);
+  line-height: 1;
+  color: var(--c-orange);
+  /* the box is sized for the finished two lines so nothing reflows while
+     the characters land */
+  min-height: 2em;
+}
+.opening__cite {
+  font-family: var(--f-serif);
+  font-size: clamp(14px, 0.94vw, 18px);
+  line-height: 60px;
+  color: var(--c-orange);
+  margin-top: 48px;
+}
+.opening__qm {
+  position: absolute;
+  left: 94%;
+  top: 62.5%;
+  width: clamp(52px, 5.48vw, 105px);
+  height: auto;
+}
+.opening__cite,
+.opening__qm { opacity: 0; transition: opacity 0.46s ease; }
+.opening__cite { opacity: 0; }
+.opening--cited .opening__cite { opacity: 1; }
+.opening--cited .opening__qm   { opacity: 0.32; }
+
+/* ── acts two and three: the nav logo performs them itself ───────
+   There is no second copy of the lockup and therefore nothing to hand
+   over: the real `.nav__logo` is lifted above the peach panel, clipped
+   down to its mark, parked at the centre of the frame, and then walked
+   back home. When the intro ends the attribute is simply dropped and
+   every override resolves to the logo's natural state — same rect, same
+   raster, nothing to flash.
+
+   Geometry comes straight out of the artwork: the seal is the left
+   22.6% of the lockup, so clipping to `inset(0 77.4% 0 0)` leaves the
+   mark alone, and nudging the box right by half the remainder (38.7%)
+   puts that mark on the centre line. Both are percentages of the
+   element, so they hold at every breakpoint. */
+/* The lift has to happen on `.nav`, not on the logo: `.nav` is
+   `z-index: 100`, which makes it a stacking context, so any z-index on a
+   child of it only ever competes *inside* that context — the logo would
+   stay behind the opening's peach panel no matter how high it was set.
+   The menu and actions ride up with it but are held at opacity 0. */
+body.home-v3[data-intro] .nav { z-index: 100001; }
+body.home-v3[data-intro] .nav__logo {
+  clip-path: inset(0 77.4% 0 0);
+  translate: 38.7% var(--mark-y, 0px);
+}
+/* `transition: none` matters: .nav__logo carries a 0.7s translate
+   transition from the shared stylesheet, so without this the park at the
+   centre of the frame would itself be animated — the mark would spend the
+   first second of the page drifting into position behind the motto. */
+body.home-v3[data-intro='hidden'] .nav__logo { opacity: 0; transition: none; }
+body.home-v3[data-intro='centre'] .nav__logo {
+  opacity: 1;
+  transition: opacity 0.64s ease;
+}
+/* the rise — still just the mark, so nothing changes width on the way up */
+body.home-v3[data-intro='up'] .nav__logo {
+  opacity: 1;
+  translate: 38.7% 0;
+  transition: translate 0.94s cubic-bezier(0.65, 0, 0.28, 1);
+}
+/* home: the mark slides left as the wordmark is uncovered */
+body.home-v3[data-intro='open'] .nav__logo {
+  opacity: 1;
+  clip-path: inset(0 0 0 0);
+  translate: 0 0;
+  transition: translate 0.78s cubic-bezier(0.65, 0, 0.35, 1),
+              clip-path 0.78s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* ── Intro line — sits under the banner bar, above the panels ───── */
+.intro-v3 {
+  font-family: var(--f-serif);
+  font-size: var(--t-lede);
+  line-height: 1.45;
+  letter-spacing: -0.02em;
+  color: var(--c-grey);
+  max-width: 1052px;
+  padding: clamp(36px, 3.28vw, 63px) 0 clamp(24px, 2.03vw, 39px);
+}
+
+
+/* ── The four B panels ─────────────────────────────────────────── */
+.journey {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.panel {
+  position: relative;
+  overflow: hidden;
+  background: var(--c-white);
+  min-height: 800px;
+  padding: 61px var(--panel-pad-x) 73px;
+  display: flex;
+  flex-direction: column;
+}
+.panel--bettering { background: var(--c-orange); }
+
+.panel__eyebrow {
+  font-family: var(--f-serif);
+  font-size: var(--t-lede);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--c-orange);
+  max-width: 827px;
+}
+.panel__title {
+  font-family: var(--f-serif);
+  font-weight: 400;
+  font-size: var(--t-title);
+  line-height: 1.25;
+  color: var(--c-orange);
+  margin-top: clamp(4px, 0.8vw, 14px);
+}
+/* everything below the title is bottom-anchored, as in the design */
+.panel__body {
+  margin-top: auto;
+  max-width: 736px;
+  position: relative;
+  z-index: 2;
+}
+.panel__lede {
+  font-family: var(--f-serif);
+  font-size: var(--t-lede);
+  line-height: 1.45;
+  letter-spacing: -0.02em;
+  color: var(--c-grey);
+  max-width: 736px;
+}
+.panel__note {
+  font-family: var(--f-sans);
+  font-size: 18px;
+  line-height: 35px;
+  color: var(--c-grey);
+  margin-top: 28px;
+}
+.panel__label {
+  font-family: var(--f-sans);
+  font-size: 18px;
+  line-height: 35px;
+  color: var(--c-grey);
+  margin-top: 36px;
+}
+
+/* Becoming — the three discoveries (Figma 38 / 55, 20px hanging dot) */
+.panel__list {
+  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+}
+.panel__list li {
+  position: relative;
+  padding-left: 20px;
+  font-family: var(--f-serif);
+  font-size: var(--t-lede);
+  line-height: 1.45;
+  letter-spacing: -0.02em;
+  color: var(--c-orange);
+}
+.panel__list li::before {
+  content: '';
+  position: absolute;
+  left: 0; top: .68em;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--c-orange);
+}
+
+/* Belonging — the pull-quote question */
+.panel__question {
+  margin-top: 26px;
+  max-width: 498px;
+  font-family: var(--f-sans);
+  font-size: 18px;
+  line-height: 28px;
+  color: var(--c-orange);
+}
+.panel__question strong { font-weight: 500; display: block; }
+
+/* Bettering — white type on orange */
+.panel--bettering .panel__eyebrow,
+.panel--bettering .panel__title,
+.panel--bettering .panel__lede,
+.panel--bettering .panel__note { color: var(--c-white); }
+.panel--bettering .panel__lede { max-width: 659px; }
+.panel--bettering .panel__note { max-width: 623px; line-height: 30px; }
+
+/* breadcrumb: Being → Becoming → Belonging → */
+.panel__crumbs {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 18px;
+  font-family: var(--f-serif);
+  font-size: var(--t-lede);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--c-white);
+}
+.panel__crumbs span::after { content: '→'; margin-left: 18px; }
+
+.panel__bullets {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 827px;
+}
+.panel__bullets li {
+  position: relative;
+  padding-left: 20px;
+  font-family: var(--f-serif);
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--c-white);
+}
+.panel__bullets li::before {
+  content: '';
+  position: absolute;
+  left: 0; top: .5em;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--c-white);
+}
+
+/* ── Panel decorations — 點 · 線 · 面 ──────────────────────────────
+   One continuous idea told across the three panels. Each graphic is
+   built from real elements (not a flat asset) so it can play its own
+   stage when the panel scrolls in; script.js adds .is-on to start it.
+     Being     — scattered dots drift, then collapse into one dot
+     Becoming  — that dot spreads left/right into a line
+     Belonging — the line spreads up/down into a plane
+   ---------------------------------------------------------------- */
+
+/* 點 — Being */
+.panel__dots {
+  position: absolute;
+  top: 117px;
+  right: 9.8%;
+  width: 34%;
+  max-width: 618px;
+  aspect-ratio: 618 / 552;
+  pointer-events: none;
+}
+/* Three beats: .is-lit fades each dot in where it belongs, the drift
+   keeps them alive while the copy lands, then .is-on gathers them. */
+.dots__dot {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--s);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--c-orange);
+  opacity: 0;
+  scale: .35;
+  /* left/top carry the collapse; translate is left free for the drift */
+  transition: opacity 1s ease var(--dl, 0ms),
+              scale 1s cubic-bezier(0.22, 1, 0.36, 1) var(--dl, 0ms);
+}
+/* Each dot carries its own --dl (set in the markup) — a scattered order
+   rather than a repeating wave, so they arrive in layers. The same value
+   drives the gather later, keeping that organic too. */
+
+.dots.is-lit .dots__dot { opacity: var(--o); scale: 1; }
+.dots.is-lit .dots__dot--core { scale: .55; }
+
+/* NB: the drift keeps running through the collapse. Killing it here made
+   every dot snap back to its un-drifted spot the instant the gather
+   started — a visible flick. left/top and translate are separate
+   properties, so they simply compose instead. */
+.dots.is-on .dots__dot {
+  left: 50%;
+  top: 48.29%;
+  scale: 0;
+  opacity: 0;
+  transition: left 2.8s cubic-bezier(0.45, 0, 0.15, 1) var(--dl, 0ms),
+              top  2.8s cubic-bezier(0.45, 0, 0.15, 1) var(--dl, 0ms),
+              scale 2.8s cubic-bezier(0.45, 0, 0.15, 1) var(--dl, 0ms),
+              opacity 2.4s ease var(--dl, 0ms);
+}
+/* the core dot is the anchor — it never drifts and it never leaves; it
+   swells slowly as the others arrive, so the merge reads as one motion */
+.dots.is-on .dots__dot--core {
+  scale: 1;
+  opacity: 1;
+  transition: scale 2.6s cubic-bezier(0.34, 1.3, 0.5, 1) 1.1s;
+}
+
+/* Idle drift — four wandering paths, each with three stops so nothing
+   just rocks back and forth. Wide enough to read as floating: a slower,
+   smaller drift made the panel look parked, waiting for something. */
+.drift-a { animation: drift-a 7.5s ease-in-out infinite; }
+.drift-b { animation: drift-b 9s   ease-in-out infinite; }
+.drift-c { animation: drift-c 6.5s ease-in-out infinite; }
+.drift-d { animation: drift-d 10s  ease-in-out infinite; }
+/* offsets so dots sharing a path never move in lockstep */
+.dots__dot:nth-child(2n)   { animation-delay: -2.4s; }
+.dots__dot:nth-child(3n)   { animation-delay: -4.7s; }
+.dots__dot:nth-child(5n)   { animation-delay: -6.1s; }
+@keyframes drift-a { 0%,100% { translate: 0 0 } 33% { translate:  16px -21px } 66% { translate:   7px -9px } }
+@keyframes drift-b { 0%,100% { translate: 0 0 } 33% { translate: -19px  13px } 66% { translate:  -6px  20px } }
+@keyframes drift-c { 0%,100% { translate: 0 0 } 33% { translate:  11px  18px } 66% { translate:  18px  4px } }
+@keyframes drift-d { 0%,100% { translate: 0 0 } 33% { translate: -13px -16px } 66% { translate: -20px  6px } }
+
+/* 線 — Becoming */
+/* Taller than the dots themselves: the box also has to hold the bob's
+   4px of travel, otherwise the mask shaves the tops flat. */
+.panel__dotrow {
+  position: absolute;
+  top: 379px;
+  right: 0;
+  width: 54.4%;
+  height: 40px;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 42%, #000 58%, transparent 100%);
+          mask-image: linear-gradient(to right, transparent 0%, #000 42%, #000 58%, transparent 100%);
+}
+/* Every dot already sits at its final spot — nothing travels. The line
+   writes itself outwards from the middle: 1 → 3 → 7 → 15 …, so it starts
+   slowly and accelerates (the delays come from script.js). Once a dot is
+   on it keeps breathing, so the finished line is never dead still. */
+.dotrow__dot {
+  position: absolute;
+  top: 12px;          /* room above for the bob */
+  left: var(--x);
+  width: 1.695%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--c-orange);
+  opacity: 0;
+  scale: 0;
+  transition: scale .8s cubic-bezier(0.34, 1.25, 0.64, 1) var(--dl),
+              opacity .7s ease var(--dl);
+}
+.dotrow.is-on .dotrow__dot {
+  opacity: 1;
+  scale: 1;
+  animation: row-bob var(--dur) ease-in-out var(--dl) infinite;
+}
+@keyframes row-bob { 0%, 100% { translate: 0 0 } 50% { translate: 0 -4px } }
+
+/* 面 — Belonging */
+/* twice the depth of the Figma block (24 rules instead of 12, same 18px
+   pitch) so the plane keeps growing up and down; still centred on the
+   line the design puts at y400 within the panel */
+.panel__lines {
+  position: absolute;
+  top: 184px;
+  right: 4.9%;
+  width: 41.3%;
+  height: 432px;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,.18) 0%, #000 45%, #000 55%, rgba(0,0,0,.18) 100%);
+          mask-image: linear-gradient(to bottom, rgba(0,0,0,.18) 0%, #000 45%, #000 55%, rgba(0,0,0,.18) 100%);
+}
+/* Opens on the middle rule alone; the rest arrive in pairs above and
+   below — 1 → 3 → 7 → 15 … — and each one draws out from its own centre
+   point rather than fading in flat. */
+.lines__line {
+  position: absolute;
+  left: 0;
+  top: var(--y);
+  width: 100%;
+  height: 2px;
+  background: var(--c-orange);
+  transform-origin: 50% 50%;
+  opacity: 0;
+  scale: 0 1;
+  transition: scale 1.5s cubic-bezier(0.22, 1, 0.36, 1) var(--dl),
+              opacity 1s ease var(--dl);
+}
+.lines.is-on .lines__line { opacity: 1; scale: 1 1; }
+
+/* Reduced motion — hold the finished frame, no drift, no travel */
+@media (prefers-reduced-motion: reduce) {
+  .dots__dot, .dotrow__dot, .lines__line, .colourbar { transition: none; animation: none; }
+}
+/* Bettering — the photo fills the right half of the panel */
+.panel__photo {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 48.9%;
+  overflow: hidden;
+}
+.panel__photo img { width: 100%; height: 100%; object-fit: cover; }
+.panel--bettering .panel__body,
+.panel--bettering .panel__head { max-width: 640px; }
+
+
+/* ================================================================
+   04 — NEWS  (4-up grid, replaces the legacy carousel)
+   ================================================================ */
+.news-v3 {
+  position: relative;
+  padding: clamp(48px, 4.8vw, 92px) 0 clamp(140px, 8.6vw, 166px);
+  background: transparent;
+}
+/* heading far left · filters far right, sitting on the heading's baseline */
+.news-v3__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+.news-v3__heading {
+  font-family: var(--f-serif);
+  font-weight: 400;
+  font-size: var(--t-heading);
+  line-height: 1.125;
+  color: var(--c-grey);
+}
+.news-v3__accent { color: var(--c-orange); }
+
+/* Retyping word (script §12) — the caret sits on the text baseline and
+   blinks only while the word is idle-length; it's purely decorative. */
+.typer { white-space: nowrap; }
+.typer__caret {
+  display: inline-block;
+  width: 0.028em;
+  height: 0.72em;
+  margin-left: 0.06em;
+  vertical-align: baseline;
+  background: currentColor;
+  animation: typer-blink 1.05s steps(1, end) infinite;
+}
+@keyframes typer-blink { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .typer__caret { display: none; }
+}
+.news-v3__filters {
+  display: flex;
+  gap: clamp(24px, 2.3vw, 44px);
+  padding-bottom: 6px;
+}
+.news-v3__filter {
+  position: relative;
+  font-family: var(--f-sans);
+  font-size: clamp(16px, 1.15vw, 22px);
+  color: var(--c-grey);
+  transition: color var(--ease);
+}
+.news-v3__filter:hover { color: var(--c-orange); }
+/* R2 marks the active tab with the orange dot alone — no colour change */
+.news-v3__filter--active::after {
+  content: '';
+  position: absolute;
+  left: 50%; bottom: -13px;
+  transform: translateX(-50%);
+  width: 5.5px; height: 5.5px;
+  border-radius: 50%;
+  background: var(--c-orange);
+}
+
+.news-v3__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 46px;
+  margin-top: 49px;
+}
+.card-v3 {
+  background: var(--c-white);
+  display: flex;
+  flex-direction: column;
+  /* R2 draws the cards flat on the peach — no drop shadow, here or on hover */
+  /* The scroll-reveal in style.css animates opacity + translate over 1.2s.
+     A `transition` here REPLACES that whole list, so opacity/translate must
+     be restated — otherwise the cards inherit the 0.25s hover timing and
+     the reveal reads as a tiny, abrupt hop. The hover lift therefore rides
+     on `transform`, which the reveal doesn't touch. */
+  transition: opacity 1.4s cubic-bezier(0.22, 1, 0.36, 1),
+              translate 1.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* a longer rise than the sitewide 40px, so the cards glide up rather than
+   blink in. :not(.is-in) keeps the landed state (translate 0) winning —
+   .card-v3.reveal on its own would tie with .reveal.is-in and, loading
+   later, would pin the cards down here forever. */
+.card-v3.reveal:not(.is-in) { translate: 0 80px; }
+/* Hover: the photo pushes in a little inside its frame and every line of
+   copy goes orange. The card itself stays put — no lift, no shadow. */
+.card-v3__image img { transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1); }
+.card-v3:hover .card-v3__image img { transform: scale(1.06); }
+.card-v3:hover .card-v3__title,
+.card-v3:hover .card-v3__desc,
+.card-v3:hover .card-v3__cat { color: var(--c-orange); }
+.card-v3__image {
+  aspect-ratio: 420 / 289;
+  overflow: hidden;
+  background: #949494;
+}
+.card-v3__image img { width: 100%; height: 100%; object-fit: cover; }
+.card-v3__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 34px 40px 40px 56px;
+}
+.card-v3__title {
+  font-family: var(--f-sans);
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 1.2;
+  color: var(--c-grey);
+  transition: color var(--ease);
+}
+.card-v3__desc {
+  font-family: var(--f-sans);
+  font-weight: 300;
+  font-size: 16px;
+  line-height: 26px;
+  color: var(--c-grey);
+  margin-top: 24px;
+  transition: color var(--ease);
+}
+.card-v3__cat {
+  font-family: var(--f-sans);
+  font-size: 16px;
+  line-height: 25px;
+  color: var(--c-grey);
+  margin-top: auto;
+  padding-top: 32px;
+  transition: color var(--ease);
+}
+
+/* the button sits close under the cards (Figma 48px); the extra air the
+   section needed goes below it, in .news-v3's padding-bottom */
+.news-v3__cta { display: flex; justify-content: center; margin-top: 48px; }
+
+
+/* Pill button — Figma 150.7 × 49, radius 100 */
+.btn-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 151px;
+  height: 49px;
+  padding: 0 22px;
+  border-radius: 100px;
+  background: var(--c-orange);
+  color: var(--c-white);
+  font-family: var(--f-sans);
+  font-size: 16px;
+  line-height: 1;
+  white-space: nowrap;
+  transition: background var(--ease);
+}
+.btn-pill:hover { background: #e35f00; }
+.btn-pill__arrow {
+  width: 15px;
+  height: auto;
+  flex-shrink: 0;
+  filter: brightness(0) invert(1);
+  transition: translate var(--ease);
+}
+.btn-pill:hover .btn-pill__arrow { translate: 4px 0; }
+
+
+/* ================================================================
+   06 — VENTURES / SCHOLARSHIP / FUNDING
+   ================================================================ */
+.ventures { background: transparent; padding: 0; }
+/* Figma: 580px left column, 355px gutter, the right column running to the
+   margin — not two equal halves. */
+.ventures__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 580px) minmax(0, 1fr);
+  gap: clamp(40px, 18.5vw, 355px);
+  padding-top: 19px;
+}
+/* both marks are drawn at their native Figma size — D'Ventures 215 × 41,
+   D'Hub 130 × 33, 44px apart — so neither gets scaled up */
+.ventures__logos {
+  display: flex;
+  align-items: center;
+  gap: 44px;
+  height: 41px;
+}
+.ventures__logos img { width: 215px; height: 41px; display: block; }
+.ventures__logos img.is-dhub { width: 130px; height: 33px; }
+
+/* R2 pairs the foundation seal with the word "Scholarship" — it's a
+   lockup now, not a plain heading, and it reads black beside the mark. */
+.ventures__title {
+  font-family: var(--f-serif);
+  font-weight: 400;
+  font-size: clamp(28px, 2.1vw, 40px);
+  line-height: 1.25;
+  color: var(--c-black);
+  height: 51px;
+  display: flex;
+  align-items: center;
+  gap: 17px;
+}
+.ventures__seal { height: 51px; width: auto; display: block; }
+
+.ventures__text {
+  font-family: var(--f-sans);
+  font-size: 16px;
+  line-height: 25px;
+  color: var(--c-grey);
+  margin-top: 28px;
+  max-width: 577px;
+}
+.ventures__text a { text-decoration: underline; }
+.ventures__text a:hover { color: var(--c-orange); }
+.ventures__col .btn-pill { margin-top: 42px; }
+
+/* Figma "Line 31": #FF6900 at 50% */
+.ventures__rule {
+  border: 0;
+  border-top: 1px solid rgba(255, 105, 0, 0.5);
+  margin: 85px 0 0;
+}
+
+/* Funding — copy column on the left, a 1200 × 595 photo filling the
+   right two-thirds. The logo sits at the top of the column, the text +
+   button hang off the bottom so they line up with the photo's base. */
+.funding {
+  display: grid;
+  grid-template-columns: minmax(0, 562px) minmax(0, 1200px);
+  gap: clamp(24px, 3vw, 58px);
+  padding-top: 78px;
+}
+/* The photo's 1200 × 595 crop sets the row height and the copy column
+   stretches to match it (grid default), so the button's bottom edge always
+   lands on the photo's bottom edge — at every width, not just at 1920. */
+.funding__col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;   /* the pill keeps its own width */
+}
+.funding__logo { width: 228px; height: auto; }
+.funding__text {
+  font-family: var(--f-sans);
+  font-size: 16px;
+  line-height: 25px;
+  color: var(--c-grey);
+  margin-top: auto;
+}
+.funding__col .btn-pill { margin-top: 12px; }
+/* the photo keeps the design's 1200 × 595 crop instead of stretching to
+   whatever height the copy column resolves to */
+.funding__photo { overflow: hidden; aspect-ratio: 1200 / 595; }
+.funding__photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+
+/* ================================================================
+   07 — COLOUR BAR
+   ================================================================ */
+.colourbar {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  height: 3px;
+  margin-top: 87px;
+}
+/* One continuous wipe across the whole bar rather than six segments
+   growing in turn — clipping the container keeps it a single stroke.
+   The curve eases in slowly and then runs away with itself. */
+.colourbar {
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 1.25s cubic-bezier(0.7, 0, 0.35, 1);
+}
+.colourbar.is-on { clip-path: inset(0 0 0 0); }
+.colourbar span:nth-child(1) { background: #ff6900; }
+.colourbar span:nth-child(2) { background: #2e8d46; }
+.colourbar span:nth-child(3) { background: #c6c925; }
+.colourbar span:nth-child(4) { background: #36a4a5; }
+.colourbar span:nth-child(5) { background: #e88793; }
+.colourbar span:nth-child(6) { background: #573c83; }
+
+
+/* ================================================================
+   08 — FOOTER (V3)
+   ================================================================ */
+.footer-v3 { background: transparent; padding: 98px 0 46px; }
+.footer-v3__inner {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: clamp(40px, 8vw, 160px);
+}
+.footer-v3__logo { width: 270px; height: auto; }
+
+.footer-v3__nav { display: flex; flex-direction: column; gap: 22px; }
+.footer-v3__nav a {
+  font-family: var(--f-sans);
+  font-size: 18px;
+  line-height: 22px;
+  color: var(--c-grey);
+  transition: color var(--ease);
+}
+.footer-v3__nav a:hover { color: var(--c-orange); }
+
+.footer-v3__social { display: flex; gap: 29px; margin-top: 45px; }
+/* same invert(50%) trick as the nav search glyph: black → #808080 */
+.footer-v3__social img { width: 26px; height: 26px; filter: invert(50%); transition: filter var(--ease); }
+.footer-v3__social a:hover img {
+  filter: invert(46%) sepia(89%) saturate(3098%) hue-rotate(359deg) brightness(102%) contrast(104%);
+}
+
+.footer-v3__legal { display: flex; flex-direction: column; gap: 18px; }
+.footer-v3__legal a {
+  font-family: var(--f-sans);
+  font-size: 13px;
+  color: var(--c-grey);
+  transition: color var(--ease);
+}
+.footer-v3__legal a:hover { color: var(--c-orange); }
+
+.footer-v3__copyright {
+  font-family: var(--f-sans);
+  font-size: 12px;
+  color: var(--c-grey);
+  text-align: right;
+  margin-top: 130px;
+}
+.footer-v3__copyright a:hover { color: var(--c-orange); }
+
+
+/* ================================================================
+   RESPONSIVE
+   ================================================================ */
+
+/* style.css scales the whole page with `body { zoom: .9 }` between 768
+   and 1800px. Viewport units shrink with it, so a plain 100svh banner
+   only covers 90% of the window — divide it back out, exactly as the
+   legacy `.hero` already does. */
+@media (min-width: 768px) and (max-width: 1800px) {
+  .hero-v3 {
+    min-height: calc(100vh / 0.9);
+    min-height: calc(100svh / 0.9);
+  }
+}
+
+@media (max-width: 1280px) {
+  .news-v3__grid { grid-template-columns: repeat(2, 1fr); gap: 32px; }
+  .panel { min-height: 0; padding-bottom: 60px; }
+  /* Copy on top, graphic underneath — every panel keeps its animation,
+     it just stops being a side-by-side layout. */
+  .panel__head { order: 1; }
+  .panel__body { order: 2; }
+  /* `relative`, not `static`: the dots and rules inside are absolutely
+     positioned, so the box has to stay their containing block — otherwise
+     they resolve against the whole panel and scatter behind the copy.
+     `inset: auto` drops the desktop offsets so it just sits in the flow. */
+  .panel__dots, .panel__dotrow, .panel__lines, .panel__photo {
+    order: 3;
+    position: relative;
+    inset: auto;
+  }
+  .panel__dots   { width: 100%; max-width: 420px; margin: 40px 0 0 auto; }
+  .panel__dotrow { width: 100%; height: 40px; margin-top: 48px; }
+  .panel__lines  { width: 100%; height: 300px; margin-top: 44px; }
+  .panel__photo  { width: 100%; height: 280px; margin-top: 40px; }
+  /* photo above the copy — the column can't hold its 595px next to it */
+  .funding { grid-template-columns: 1fr; gap: 32px; padding-top: 60px; }
+  .funding__col { min-height: 0; }
+  .funding__text { margin-top: 32px; }
+  .funding__photo { order: -1; height: clamp(220px, 34vw, 420px); }
+}
+
+@media (max-width: 767px) {
+  .wrap { padding: 0 var(--gm-mob); }
+
+  /* search far left · logo centred · hamburger far right. The actions row
+     spans the full width so its two ends land on the margins; the logo
+     sits over the middle column and stays clickable. */
+  .nav--v3 .nav__inner { grid-template-columns: 1fr auto 1fr; align-items: center; padding-top: 0; padding-bottom: 0; height: 72px; }
+  .nav--v3 .nav__actions {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    pointer-events: none;
+  }
+  .nav--v3 .nav__actions > * { pointer-events: auto; }
+  .nav--v3 .nav__logo { grid-column: 2; grid-row: 1; justify-self: center; position: relative; z-index: 1; }
+
+  /* the headline has to fit inside the 20px margins, so the giant serif
+     drops below the 7.8vw desktop ratio */
+  :root { --hero-giant: 9.6vw; }
+
+  /* the full-screen height is already sitewide; only the insets change */
+  .hero-v3 { padding: 112px var(--gm-mob) 0; }
+  /* description and lockup stack rather than sitting on one row */
+  .hero-v3__foot {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 28px;
+    padding-bottom: 36px;
+  }
+  .hero-v3__body { font-size: 15px; line-height: 26px; }
+  .colourbar--hero { height: 8px; }
+  .intro-v3 { font-size: 22px; line-height: 32px; }
+
+  /* The three white panels share a height (the tallest of them wins) so
+     the stack reads as one set of cards; Bettering keeps its own height.
+     `1fr` rows in an auto-height grid all resolve to the largest item.
+     NB: the track list assumes exactly these four panels. */
+  .journey {
+    display: grid;
+    grid-template-rows: repeat(3, 1fr) auto;
+    gap: 10px;
+  }
+  .panel { padding: 40px 24px 48px; }
+  /* copy stays at the top, the graphic takes the slack and sits at the
+     bottom — so all three graphics line up along the same baseline */
+  .panel__body { margin-top: 24px; margin-bottom: 44px; }
+  .panel__dots   { margin: auto 0 0 auto; }
+  .panel__dotrow,
+  .panel__lines,
+  .panel__photo  { margin-top: auto; }
+  .panel__note, .panel__label { font-size: 15px; line-height: 26px; }
+  .panel__list li, .panel__bullets li { font-size: 18px; }
+  .panel__crumbs { font-size: 20px; gap: 0 10px; }
+  .panel__crumbs span::after { margin-left: 10px; }
+
+  .news-v3 { padding: 40px 0 150px; }
+  .news-v3__cta { margin-top: 40px; }
+  .news-v3__head { flex-direction: column; align-items: flex-start; gap: 24px; }
+  .news-v3__filters { gap: 22px; flex-wrap: wrap; padding-bottom: 0; }
+
+  /* cards become a swipeable rail instead of a tall stack; it bleeds to
+     both edges so the next card peeks in and reads as scrollable */
+  .news-v3__grid {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: var(--gm-mob);
+    margin: 44px calc(var(--gm-mob) * -1) 0;
+    padding: 16px var(--gm-mob) 36px;   /* room for the card shadow */
+    scrollbar-width: none;
+  }
+  .news-v3__grid::-webkit-scrollbar { display: none; }
+  .card-v3 { flex: 0 0 78%; scroll-snap-align: start; }
+  .card-v3__body { padding: 24px; }
+
+  .ventures__grid { grid-template-columns: 1fr; gap: 56px; }
+  .ventures__rule { margin-top: 56px; }
+
+  .footer-v3__inner { grid-template-columns: 1fr; gap: 40px; }
+  .footer-v3__copyright { text-align: left; margin-top: 48px; }
+}
