@@ -143,13 +143,72 @@ window.scrollTo(0, 0);
   const mobile   = document.getElementById('mobile-menu');
   const burger   = document.querySelector('.nav__hamburger');
 
+  /* Open the circular wipe from a given control.
+
+     The clip-path is written inline, in full, rather than left to the
+     stylesheet's `circle(… at var(--reveal-x) …)`. Changing a custom
+     property and adding the open class in the same frame gets coalesced
+     into one style recalc, so the transition's *from* value is still the
+     previous origin — the very first open therefore grew from the default
+     right-hand corner and slid left on the way, and only the second one
+     (with the var already in place) started from the button. Pinning the
+     closed circle at the new origin, flushing it by reading the property
+     back, and only then setting the open value removes the guesswork. */
+  function revealFrom(el) {
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    /* the overlay lives inside the zoomed body (`zoom: .9` under 1800px),
+       so its own coordinate space is 1/zoom of what the rect reports */
+    const z = parseFloat(window.getComputedStyle(document.body).zoom) || 1;
+    const x = ((r.left + r.width / 2) / z).toFixed(1) + 'px';
+    const y = ((r.top + r.height / 2) / z).toFixed(1) + 'px';
+    overlay.style.setProperty('--reveal-x', x);
+    overlay.style.setProperty('--reveal-y', y);
+    overlay.__revealTo = 'circle(150% at ' + x + ' ' + y + ')';
+  }
+
+  /* Keep the closed circle parked on the search button at all times —
+     on load, on resize, and whenever the pointer arrives at the button.
+     This is what actually fixes the first open: the transition captures
+     its starting value from whatever the closed state currently is, and
+     doing the arithmetic only at click time left that starting value on
+     the stylesheet's default (the right-hand corner) for the very first
+     run. Now it is already correct before the click happens. */
+  function park() {
+    const b = document.querySelector('.nav__search-btn');
+    /* getClientRects, not offsetParent: the sticky nav is `position: fixed`,
+       and a fixed ancestor makes offsetParent null in some browsers */
+    if (!b || !b.getClientRects().length) return;
+    if (overlay.classList.contains('search-overlay--open')) return;
+    /* park it with the transition off, or the closed circle spends 0.8s
+       easing its own origin across — harmless to look at (radius 0) but it
+       means a click inside that window would still start from part-way */
+    const prev = overlay.style.transition;
+    overlay.style.transition = 'none';
+    revealFrom(b);
+    void window.getComputedStyle(overlay).clipPath;
+    overlay.style.transition = prev;
+  }
+  park();
+  window.addEventListener('resize', park);
+  window.addEventListener('scroll', park, { passive: true });
+  openers.forEach(function (b) { b.addEventListener('mouseenter', function () { revealFrom(b); }); });
+
   function setOpen(open) {
     overlay.classList.toggle('search-overlay--open', open);
     overlay.setAttribute('aria-hidden', String(!open));
     document.documentElement.classList.toggle('lock-scroll', open);
     document.body.classList.toggle('search-open', open);   /* orange overlay → white cursor */
     if (window.__lenis) { open ? window.__lenis.stop() : window.__lenis.start(); }
-    if (open) window.setTimeout(function () { if (input) input.focus(); }, 80);
+    if (open) {
+      /* now that it is visible, grow to the pinned origin */
+      overlay.style.clipPath = overlay.__revealTo || '';
+      window.setTimeout(function () { if (input) input.focus(); }, 80);
+    } else {
+      /* back to the stylesheet's closed circle, which still reads the
+         vars — so it shrinks into the same spot it came from */
+      overlay.style.clipPath = '';
+    }
   }
 
   openers.forEach(function (b) {
@@ -161,10 +220,8 @@ window.scrollTo(0, 0);
         document.body.classList.remove('menu-open');       /* drop the white-menu cursor state */
         if (burger) burger.setAttribute('aria-expanded', 'false');
       }
-      /* circular reveal radiating from the clicked search button */
-      var r = b.getBoundingClientRect();
-      overlay.style.setProperty('--reveal-x', ((r.left + r.width / 2) / window.innerWidth * 100) + '%');
-      overlay.style.setProperty('--reveal-y', ((r.top + r.height / 2) / window.innerHeight * 100) + '%');
+      /* circular wipe radiating from whichever search control was clicked */
+      revealFrom(b);
       setOpen(true);
     });
   });
@@ -852,24 +909,43 @@ window.scrollTo(0, 0);
   }
   function release() {
     magnet = null;
-    cursor.classList.remove('cursor--magnet');
+    cursor.classList.remove('cursor--magnet', 'cursor--absorb');
     cursor.style.width  = '';
     cursor.style.height = '';
   }
-  document.querySelectorAll('.btn-circle, button, .nav__link, .nav__lang').forEach(function (el) {
+
+  /* Search is the only control that swallows the cursor: the dot collapses
+     into it and the button's own orange disc is left doing the work — one
+     clean circle, no ring around it. */
+  document.querySelectorAll('.nav__search-btn, .search-overlay__close').forEach(function (b) {
+    b.addEventListener('mouseenter', function () { cursor.classList.add('cursor--absorb'); });
+    b.addEventListener('mouseleave', release);
+  });
+  /* Menu links and 中文 no longer get wrapped by the cursor — they have
+     their own dot-and-orange hover in CSS. The orange pills do get it:
+     the ring *is* the outline the button gains on hover. */
+  document.querySelectorAll('.btn-circle, button').forEach(function (el) {
+    /* The hamburger and the search button keep the plain dot: the
+       hamburger's own rules go orange, and the search button draws its own
+       orange disc — a cursor ring on top of that would just be a second
+       circle around the first. */
+    if (el.matches('.nav__hamburger, .nav__search-btn')) return;
     /* listing filters / breadcrumb use a plain colour hover — no magnet wrap;
        the mobile menu + search overlay use an underline-draw hover instead of
        the cursor frame */
     if (el.closest('.listing__filters') || el.closest('.listing__crumb') ||
         el.closest('.nav__mobile-menu') ||
-        (el.closest('.search-overlay') && !el.matches('.search-overlay__close'))) return;
+        el.closest('.search-overlay')) return;
     el.addEventListener('mouseenter', function () { engage(el); });
     el.addEventListener('mouseleave', release);
   });
 
-  /* orange-background content blocks (article highlight, orange approach
-     cards): the orange dot would disappear, so flip it white while inside */
-  document.querySelectorAll('.article__highlight, .approach-card--orange').forEach(function (el) {
+  /* Anything with an orange ground — the Bettering panel, the search
+     button's hover disc, the legacy article highlight and approach cards.
+     An orange dot on orange is invisible, so it knocks out white. */
+  document.querySelectorAll(
+    '.article__highlight, .approach-card--orange, .panel--bettering'
+  ).forEach(function (el) {
     el.addEventListener('mouseenter', function () { cursor.classList.add('cursor--on-dark'); });
     el.addEventListener('mouseleave', function () { cursor.classList.remove('cursor--on-dark'); });
   });
@@ -913,6 +989,18 @@ window.scrollTo(0, 0);
     /* click handling (edge paging + card navigation) lives in the carousel
        module so it also works on touch; here we only drive the cursor visual */
   }
+})();
+
+
+/* ----------------------------------------------------------------
+   0a. Release the pre-paint hold — §13 normally takes it over in the
+   same tick, but if the landing intro never runs (another page, or it
+   bailed early) nothing must stay hidden.
+   ---------------------------------------------------------------- */
+(function () {
+  const root = document.documentElement;
+  if (!root.classList.contains('lp-boot')) return;
+  window.setTimeout(function () { root.classList.remove('lp-boot'); }, 0);
 })();
 
 
@@ -1028,10 +1116,13 @@ window.scrollTo(0, 0);
 
     ['.footer__logo', 0], ['.footer__col', 120], ['.footer__legal-nav', 240],
 
-    /* home V3 (index.html) — the four B panels, news grid, ventures, footer */
-    /* .panel__dots is NOT listed — .reveal animates `translate`, which the
-       dots need for their idle drift; §8.7 owns that graphic's entrance */
-    ['.panel__head', 0], ['.panel__body', 140], ['.panel__photo', 200],
+    /* the line under the banner rises in like the card copy below it */
+    ['.intro-v3', 0],
+
+    /* home V3 (index.html) — news grid, ventures, footer.
+       The four B panels are NOT here: §8.8 runs each card as one timeline
+       (copy top-to-bottom, then its graphic), triggered by the card itself
+       rather than by each block scrolling into view on its own. */
 
     ['.news-v3__heading', 0], ['.news-v3__filters', 130],
     /* left to right, one card after the other */
@@ -1131,14 +1222,16 @@ window.scrollTo(0, 0);
      on in place (nothing travels); the delay does the spreading. */
   const ROW_DOTS = 39;
   const ROW_MID  = (ROW_DOTS - 1) / 2;
+  /* Nothing moves once the row is written — it settles as a straight line
+     and stays one. The only motion is the writing itself, and it takes its
+     time: the beat is what makes the dots arrive one at a time rather than
+     all at once. */
   document.querySelectorAll('.dotrow').forEach(function (row) {
     for (let i = 0; i < ROW_DOTS; i++) {
       const dot = document.createElement('span');
       dot.className = 'dotrow__dot';
       dot.style.setProperty('--x', (i * 100 / ROW_DOTS) + '%');
-      dot.style.setProperty('--dl', ringDelay(Math.abs(i - ROW_MID), 330));
-      /* mismatched periods keep the settled line breathing out of sync */
-      dot.style.setProperty('--dur', (4.6 + (i % 7) * 0.45).toFixed(2) + 's');
+      dot.style.setProperty('--dl', ringDelay(Math.abs(i - ROW_MID), 520));
       row.appendChild(dot);
     }
   });
@@ -1166,6 +1259,7 @@ window.scrollTo(0, 0);
      dots wait longest: they fade in first and drift for a beat before
      they're gathered, so the panel is alive rather than parked. */
   const HOLD = { dots: 2520, dotrow: 1500, lines: 1500, bar: 200 };
+  window.__motionHold = HOLD;
 
   /* No motion available? Hold each panel on the frame the design shows:
      panel 1 stays scattered (its opening frame), 2 and 3 sit complete. */
@@ -1209,7 +1303,106 @@ window.scrollTo(0, 0);
       el.classList.add('is-lit');
       return;
     }
+    /* graphics inside a B panel are played by that panel's timeline (§8.8)
+       so they run on from the copy instead of triggering separately */
+    if (el.closest('.panel')) return;
     (el.dataset.motion === 'bar' ? thin : panels).observe(el);
+  });
+})();
+
+
+/* ----------------------------------------------------------------
+   8.8 The B panels play as one card, not as loose blocks.
+
+   Each panel is a single timeline, started by the *card* coming into
+   view — so the copy near the bottom of a tall card is already on its
+   way in by the time you reach it, instead of waiting to be scrolled to
+   individually. The lines cascade top to bottom, and the panel's graphic
+   (點 · 線 · 面, or Bettering's photo) starts half a second before the
+   last line has finished landing, so the two read as one move rather
+   than two separate events.
+
+   §8.7 still builds the dot rows and rules; it just no longer stages the
+   ones that live inside a panel.
+   ---------------------------------------------------------------- */
+(function () {
+  const panels = document.querySelectorAll('.panel');
+  if (!panels.length) return;
+
+  /* top-to-bottom, in markup order — `:scope >` keeps list items grouped
+     under their own parent rather than jumping the order around */
+  const STEP_SEL = '.panel__eyebrow, .panel__crumbs, .panel__title, .panel__lede,' +
+                   '.panel__label, .panel__list li, .panel__note,' +
+                   '.panel__question, .panel__bullets li';
+
+  const STEP = 110;    /* between one line and the next            */
+  const FADE = 1200;   /* .reveal's own transition, from style.css */
+  /* The graphic overlaps the tail of the copy: it starts while the last
+     line is still settling, so the panel never goes quiet in between. */
+  const LEAD = 900;    /* how far into the last line's fade it begins */
+  const ZOOM_IN = 500; /* beat before Bettering's photo starts drifting in */
+
+  /* Inside a panel the opening beat is far shorter than a standalone
+     graphic's — the copy has already done the waiting. 線 and 面 have no
+     separate lit state at all, so they play the moment they're cued. */
+  const PANEL_HOLD = { dots: 1400, dotrow: 0, lines: 0 };
+
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  panels.forEach(function (panel) {
+    const steps   = Array.prototype.slice.call(panel.querySelectorAll(STEP_SEL));
+    const graphic = panel.querySelector('[data-motion], .panel__photo');
+    if (!steps.length) return;
+
+    /* no motion — show everything as designed */
+    if (reduce || !('IntersectionObserver' in window)) {
+      if (graphic) {
+        graphic.classList.add(graphic.dataset.motion === 'dots' ? 'is-lit' : 'is-on');
+      }
+      return;
+    }
+
+    steps.forEach(function (el) { el.classList.add('reveal'); });
+    /* Bettering's photo is deliberately NOT a reveal target — it belongs to
+       the orange card and arrives with it, rather than fading in on its own
+       afterwards. All it does is drift slowly larger once it is there. */
+
+    const obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        obs.disconnect();
+        play();
+      });
+      /* Fires once the card's top has climbed past 60% of the viewport,
+         i.e. the card is the thing you are actually looking at. A plain
+         low threshold triggered the next card the moment it peeked over
+         the fold, so cards 2 and 3 had already played by the time you
+         got to them. */
+    }, { threshold: 0, rootMargin: '0px 0px -40% 0px' });
+    obs.observe(panel);
+
+    function play() {
+      steps.forEach(function (el, i) {
+        window.setTimeout(function () { el.classList.add('is-in'); }, i * STEP);
+      });
+
+      if (!graphic) return;
+      /* The last line starts at (n-1)·STEP and takes FADE to settle; the
+         graphic comes in under the tail of that, LEAD ms before it's done. */
+      const at = Math.max(0, (steps.length - 1) * STEP + FADE - LEAD);
+
+      if (!graphic.dataset.motion) {
+        /* Bettering's photo — already on screen with the orange; just start
+           the slow push in, a beat after the card has settled */
+        return void window.setTimeout(function () { graphic.classList.add('is-zoom'); }, ZOOM_IN);
+      }
+      window.setTimeout(function () {
+        graphic.classList.add('is-lit');
+        const hold = PANEL_HOLD[graphic.dataset.motion] || 0;
+        if (!hold) return void graphic.classList.add('is-on');
+        window.setTimeout(function () { graphic.classList.add('is-on'); }, hold);
+      }, at);
+    }
   });
 })();
 
@@ -1757,6 +1950,102 @@ window.scrollTo(0, 0);
 
 
 /* ----------------------------------------------------------------
+   13a. Headline line splitter — the banner is set as two markup lines,
+   but the second one wraps, so at the design width it reads as three.
+   Measure where the text *actually* falls and give each rendered line
+   its own overflow box, so §13 can bring them in one after another
+   instead of fading the whole block at once.
+
+   Words keep their own colour by carrying `.hero-v3__accent` through
+   the rebuild, so the orange can start mid-line as it does in the
+   design. Re-runs on resize, because the wrap point moves.
+   ---------------------------------------------------------------- */
+(function () {
+  const title = document.querySelector('.hero-v3__title');
+  if (!title) return;
+
+  const source = title.cloneNode(true);   /* pristine copy to re-split from */
+  const LINE_STAGGER = 130;               /* ms between one line and the next */
+
+  /* every word in its own span, accent words flagged, so they can be
+     regrouped by rendered line without losing their colour */
+  function toWords() {
+    title.innerHTML = '';
+    Array.prototype.forEach.call(source.childNodes, function (node) {
+      const accent = node.nodeType === 1 &&
+                     node.classList && node.classList.contains('hero-v3__accent');
+      const holder = node.nodeType === 1 ? node : null;
+      const walk = function (n, isAccent) {
+        if (n.nodeType === 3) {
+          n.textContent.split(/(\s+)/).forEach(function (bit) {
+            if (!bit) return;
+            if (/^\s+$/.test(bit)) return void title.appendChild(document.createTextNode(' '));
+            const w = document.createElement('span');
+            w.className = 'hw' + (isAccent ? ' hero-v3__accent' : '');
+            w.textContent = bit;
+            title.appendChild(w);
+          });
+          return;
+        }
+        if (n.nodeType !== 1) return;
+        if (n.tagName === 'BR') return void title.appendChild(document.createElement('br'));
+        const nowAccent = isAccent || (n.classList && n.classList.contains('hero-v3__accent'));
+        /* .hero-v3__line is a block in the source — keep the break */
+        const isBlock = n.classList && n.classList.contains('hero-v3__line');
+        if (isBlock && title.childNodes.length) title.appendChild(document.createElement('br'));
+        Array.prototype.forEach.call(n.childNodes, function (c) { walk(c, nowAccent); });
+      };
+      walk(node, accent && !!holder);
+    });
+  }
+
+  /* group the words by their rendered top, then wrap each group in a
+     masking box */
+  function toLines() {
+    const words = Array.prototype.slice.call(title.querySelectorAll('.hw'));
+    if (!words.length) return;
+    const lines = [];
+    let top = null;
+    words.forEach(function (w) {
+      const t = Math.round(w.offsetTop);
+      if (top === null || Math.abs(t - top) > 4) { lines.push([]); top = t; }
+      lines[lines.length - 1].push(w);
+    });
+
+    const frag = document.createDocumentFragment();
+    lines.forEach(function (group, i) {
+      const box = document.createElement('span');
+      const inner = document.createElement('span');
+      box.className = 'hero-v3__ln';
+      inner.className = 'hero-v3__ln-i';
+      inner.style.setProperty('--ln-delay', (i * LINE_STAGGER) + 'ms');
+      group.forEach(function (w, j) {
+        if (j) inner.appendChild(document.createTextNode(' '));
+        inner.appendChild(w);
+      });
+      box.appendChild(inner);
+      frag.appendChild(box);
+    });
+    title.innerHTML = '';
+    title.appendChild(frag);
+    title.classList.add('is-split');
+  }
+
+  function split() { toWords(); toLines(); }
+
+  /* wait for the webfont, or the measured wrap is the fallback font's */
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(split);
+  else split();
+
+  let t;
+  window.addEventListener('resize', function () {
+    window.clearTimeout(t);
+    t = window.setTimeout(split, 180);
+  });
+})();
+
+
+/* ----------------------------------------------------------------
    13. Landing intro (Home V3) — from Figma R2 OPT1_01_Home_00_01 /
    _00_04 / _00_05:
 
@@ -1782,6 +2071,11 @@ window.scrollTo(0, 0);
   if (!body.classList.contains('home-v3')) return;
   const hero = document.getElementById('hero');
   if (!hero) return;
+
+  /* A reload restores the previous scroll position *before* any of this
+     runs, so the first paint can show the middle of the page for a frame
+     before the intro pins it back to the top. Opt out. */
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 
   const bar     = document.querySelector('.colourbar--hero');
   const navLogo = document.querySelector('.nav__logo');
@@ -1810,8 +2104,11 @@ window.scrollTo(0, 0);
   const QUOTE = ['Care for others as well as', 'you would care for yourself.'];
   const CITE  = 'Dr. Din Hwa Chen (1923–2012)';
 
-  /* landing state: banner copy held back, menu held back, page locked */
+  /* landing state: banner copy held back, menu held back, page locked.
+     `lp-boot` (set inline in <head>) was covering the gap until now —
+     swap in the same tick so nothing is ever painted unheld. */
   body.classList.add('lp-nav', 'lp-h1', 'lp-h2');
+  document.documentElement.classList.remove('lp-boot');
   document.documentElement.classList.add('lock-scroll');
   if (window.__lenis) window.__lenis.stop();
   window.scrollTo(0, 0);
@@ -1912,24 +2209,8 @@ window.scrollTo(0, 0);
     playLanding();
   });
 
-  /* --- skip ------------------------------------------------------- */
-  function skip() {
-    timers.forEach(clearTimeout);
-    timers.length = 0;
-    intro.remove();
-    body.removeAttribute('data-intro');
-    releaseScroll();
-    body.classList.remove('lp-nav', 'lp-h1', 'lp-h2');
-    if (bar) bar.classList.add('is-lit', 'is-on');
-    detach();
-  }
-  function detach() {
-    window.removeEventListener('pointerdown', skip);
-    window.removeEventListener('keydown', skip);
-  }
-  window.addEventListener('pointerdown', skip);
-  window.addEventListener('keydown', skip);
-  at(tOpen + T.open, detach);
+  /* Nothing skips the intro — neither a key nor a click. It plays once,
+     in full, every time. */
 
   /* keep the parked mark centred if the window is resized mid-intro */
   window.addEventListener('resize', function () {

@@ -74,11 +74,25 @@ body.home-v3 {
   text-transform: uppercase;
   color: var(--c-grey);
 }
+/* `.nav__link:hover` in style.css ties with `.nav--v3 .nav__link` on
+   specificity and loses on order, so the hover colour has to be restated
+   here or the links never leave grey. */
+.nav--v3 .nav__link:hover { color: var(--c-orange); }
+
+/* 中文 sits in the same grey as the rest of the R2 nav */
+.nav--v3 .nav__lang { color: var(--c-grey); }
+.nav--v3 .nav__lang:hover { color: var(--c-orange); }
 
 /* R2 draws the top-bar search glyph in the same #808080 as the menu.
    invert(50%) maps the icon's pure black to exactly #808080; the hover
    filter in style.css still takes it to brand orange. */
-.nav--v3 .nav__search-btn img { filter: invert(50%); }
+/* Both states list the same six filter functions in the same order, so
+   the hover transition interpolates cleanly. Mismatched lists make the
+   browser step between them and the glyph flashes through odd hues. */
+.nav--v3 .nav__search-btn img {
+  filter: invert(50%) sepia(0%) saturate(0%) hue-rotate(0deg)
+          brightness(100%) contrast(100%);
+}
 
 /* the seal only ever shows inside the sticky pill */
 .nav__seal { display: none; }
@@ -158,6 +172,14 @@ body.home-v3 {
   flex-direction: column;
   min-height: 100vh;
   min-height: 100svh;
+  /* every other section sits inside `.wrap`, which caps the design at its
+     1920 canvas and centres the remainder. The banner is not wrapped — it
+     has to own the full-screen height — so it carries the same cap itself,
+     otherwise the headline, description, lockup and colour bar all run out
+     to the window edges above 1920 while the rest of the page stays on the
+     grid. */
+  max-width: 1920px;
+  margin: 0 auto;
   padding: clamp(96px, 8.18vw, 157px) var(--gm) 0;
   text-align: left;
 }
@@ -171,6 +193,37 @@ body.home-v3 {
 }
 .hero-v3__line { display: block; }
 .hero-v3__accent { color: var(--c-orange); }
+
+/* Line-by-line reveal. script §13a re-wraps the headline into one box per
+   *rendered* line (the second markup line wraps into two at the design
+   width, and the wrap point moves with the viewport), then each box masks
+   its own line so they rise in one after another. */
+.hero-v3__ln {
+  display: block;
+  overflow: hidden;
+  /* line-height is 1, so ascenders and descenders sit outside the line
+     box — clipping it flush shaved the tops and tails off the type.
+     Open the mask up and pull the extra back out of the flow, so the
+     three lines keep their exact 1-to-1 pitch. */
+  padding: 0.18em 0 0.16em;
+  margin-top: -0.18em;
+  margin-bottom: -0.16em;
+}
+.hero-v3__ln-i {
+  display: block;
+  translate: 0 0;
+}
+/* clears the taller mask box, not just the line box */
+body.lp-h1 .hero-v3__ln-i { translate: 0 140%; }
+.hero-v3__ln-i {
+  transition: translate 1s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--ln-delay, 0ms);
+}
+/* Once split, the block itself no longer fades or moves — the three line
+   masks carry the whole reveal, so it reads as one line after another
+   rather than the lot arriving together behind a single fade. */
+.hero-v3__title.is-split { transition: none; }
+body.lp-h1 .hero-v3__title.is-split { opacity: 1; translate: none; }
 
 /* description far left · lockup far right, both sitting on the baseline */
 .hero-v3__foot {
@@ -215,6 +268,17 @@ body.lp-h2 .hero-v3__foot  { opacity: 0; translate: 0 22px; }
 body.home-v3.lp-nav .nav__logo { opacity: 1; translate: none; }
 
 
+/* Pre-paint hold — the inline script in <head> sets `lp-boot` before the
+   body is parsed, so the nav and banner never flash up in the frames
+   between first paint and script.js running. §13 removes it. */
+html.lp-boot .nav__logo,
+html.lp-boot .nav__menu,
+html.lp-boot .nav__actions,
+html.lp-boot .hero-v3__title,
+html.lp-boot .hero-v3__foot { opacity: 0; }
+html.lp-boot .colourbar--hero { clip-path: inset(0 100% 0 0); }
+
+
 /* ================================================================
    01b — LANDING OPENING (script §13)
    NB: namespaced `.opening`, not `.intro` — style.css already owns a
@@ -254,14 +318,26 @@ body.home-v3 .cursor { z-index: 100001; }
   transition: opacity 0.68s ease;
 }
 .opening__motto--out { opacity: 0; }
+/* The caret takes no width in layout — it's drawn by the pseudo-element,
+   which sits outside the flow. A caret that occupied real width could not
+   always fit at the end of a full line and would drop to the next one,
+   which is exactly what it was doing once a line filled the box. */
 .opening__caret {
   display: inline-block;
-  width: 0.028em;
+  position: relative;
+  width: 0;
   height: 0.72em;
-  margin-left: 0.06em;
   vertical-align: baseline;
-  background: currentColor;
   animation: typer-blink 1.05s steps(1, end) infinite;
+}
+.opening__caret::after {
+  content: '';
+  position: absolute;
+  left: 0.06em;
+  bottom: 0;
+  width: 0.028em;
+  height: 100%;
+  background: currentColor;
 }
 .opening__quote {
   font-family: var(--f-serif);
@@ -578,8 +654,8 @@ body.home-v3[data-intro='open'] .nav__logo {
 @keyframes drift-d { 0%,100% { translate: 0 0 } 33% { translate: -13px -16px } 66% { translate: -20px  6px } }
 
 /* 線 — Becoming */
-/* Taller than the dots themselves: the box also has to hold the bob's
-   4px of travel, otherwise the mask shaves the tops flat. */
+/* Taller than the dots themselves so the scale-up overshoot has somewhere
+   to go — a tight box lets the mask shave the tops flat. */
 .panel__dotrow {
   position: absolute;
   top: 379px;
@@ -592,11 +668,10 @@ body.home-v3[data-intro='open'] .nav__logo {
 }
 /* Every dot already sits at its final spot — nothing travels. The line
    writes itself outwards from the middle: 1 → 3 → 7 → 15 …, so it starts
-   slowly and accelerates (the delays come from script.js). Once a dot is
-   on it keeps breathing, so the finished line is never dead still. */
+   slowly and accelerates (the delays come from script.js). */
 .dotrow__dot {
   position: absolute;
-  top: 12px;          /* room above for the bob */
+  top: 12px;          /* room above for the scale overshoot */
   left: var(--x);
   width: 1.695%;
   aspect-ratio: 1;
@@ -604,15 +679,15 @@ body.home-v3[data-intro='open'] .nav__logo {
   background: var(--c-orange);
   opacity: 0;
   scale: 0;
-  transition: scale .8s cubic-bezier(0.34, 1.25, 0.64, 1) var(--dl),
-              opacity .7s ease var(--dl);
+  transition: scale 1.15s cubic-bezier(0.34, 1.25, 0.64, 1) var(--dl),
+              opacity 1s ease var(--dl);
 }
+/* The finished row is a straight, still line — the writing is the whole
+   move, so nothing keeps going afterwards. */
 .dotrow.is-on .dotrow__dot {
   opacity: 1;
   scale: 1;
-  animation: row-bob var(--dur) ease-in-out var(--dl) infinite;
 }
-@keyframes row-bob { 0%, 100% { translate: 0 0 } 50% { translate: 0 -4px } }
 
 /* 面 — Belonging */
 /* twice the depth of the Figma block (24 rules instead of 12, same 18px
@@ -657,7 +732,19 @@ body.home-v3[data-intro='open'] .nav__logo {
   width: 48.9%;
   overflow: hidden;
 }
-.panel__photo img { width: 100%; height: 100%; object-fit: cover; }
+/* Bettering's photo arrives with the orange card — no separate fade — and
+   then pushes in very slowly, so the panel keeps breathing while you read. */
+.panel__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1);
+  transition: transform 8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.panel__photo.is-zoom img { transform: scale(1.07); }
+@media (prefers-reduced-motion: reduce) {
+  .panel__photo img, .panel__photo.is-zoom img { transform: none; transition: none; }
+}
 .panel--bettering .panel__body,
 .panel--bettering .panel__head { max-width: 640px; }
 
@@ -819,15 +906,25 @@ body.home-v3[data-intro='open'] .nav__logo {
   white-space: nowrap;
   transition: background var(--ease);
 }
-.btn-pill:hover { background: #e35f00; }
+/* hover flips the pill: white ground, orange type and arrow */
+.btn-pill { transition: background var(--ease), color var(--ease); }
+.btn-pill:hover {
+  background: var(--c-white);
+  color: var(--c-orange);
+}
 .btn-pill__arrow {
   width: 15px;
   height: auto;
   flex-shrink: 0;
-  filter: brightness(0) invert(1);
-  transition: translate var(--ease);
+  filter: brightness(0) invert(1);          /* white on the orange ground */
+  transition: translate var(--ease), filter var(--ease);
 }
-.btn-pill:hover .btn-pill__arrow { translate: 4px 0; }
+.btn-pill:hover .btn-pill__arrow {
+  translate: 4px 0;
+  /* the same black → #ff6900 recipe the nav icons use */
+  filter: invert(46%) sepia(89%) saturate(3098%) hue-rotate(359deg)
+          brightness(102%) contrast(104%);
+}
 
 
 /* ================================================================
@@ -966,10 +1063,20 @@ body.home-v3[data-intro='open'] .nav__logo {
 .footer-v3__nav a:hover { color: var(--c-orange); }
 
 .footer-v3__social { display: flex; gap: 29px; margin-top: 45px; }
-/* same invert(50%) trick as the nav search glyph: black → #808080 */
-.footer-v3__social img { width: 26px; height: 26px; filter: invert(50%); transition: filter var(--ease); }
+/* black → #808080, and → brand orange on hover. Both declarations list
+   the same six functions in the same order: with mismatched lists the
+   filter cannot interpolate and the icons flickered through stray hues
+   on the way across. */
+.footer-v3__social img {
+  width: 26px;
+  height: 26px;
+  filter: invert(50%) sepia(0%) saturate(0%) hue-rotate(0deg)
+          brightness(100%) contrast(100%);
+  transition: filter var(--ease);
+}
 .footer-v3__social a:hover img {
-  filter: invert(46%) sepia(89%) saturate(3098%) hue-rotate(359deg) brightness(102%) contrast(104%);
+  filter: invert(46%) sepia(89%) saturate(3098%) hue-rotate(359deg)
+          brightness(102%) contrast(104%);
 }
 
 .footer-v3__legal { display: flex; flex-direction: column; gap: 18px; }

@@ -209,6 +209,12 @@ body.has-custom-cursor .news-card,
 body.has-custom-cursor .news-card__tag,
 body.has-custom-cursor .story-card,
 body.has-custom-cursor .story-card__tag { cursor: none; }
+/* The list above only covers the elements that were known to carry their
+   own cursor, so anything else with a UA cursor (and Safari in
+   particular, which likes to bring the arrow back on scroll or on
+   re-entering the window) shows the system pointer *on top of* the orange
+   dot. Blanket it instead, and leave text fields their caret. */
+body.has-custom-cursor *:not(input):not(textarea):not(select) { cursor: none !important; }
 
 .cursor {
   position: fixed;
@@ -263,6 +269,45 @@ body.search-open .cursor:not(.cursor--magnet),
    stroke thins back to 2.5px so the ring reads as a slim frame around the
    target (and keeps the +9 wrap math in engage() correct). */
 .cursor--magnet   { background: transparent; border-width: 2.5px; }
+/* Drawn into the target and gone — only the search button uses this, so
+   what you see is the one big orange disc and nothing else.
+   Width/height, never `scale`: the cursor is positioned by a scripted
+   `transform`, and the standalone `scale` property composes *before*
+   `transform`, which would scale the translation too and fling the dot
+   off towards the top-left. Collapsing the box is safe — the transform
+   already carries translate(-50%,-50%), so it shrinks on the spot. */
+.cursor--absorb { width: 0; height: 0; border-width: 0; opacity: 0; }
+/* Search: the wrap is a solid disc rather than a ring, with the glyph
+   knocked out white on top of it (script adds `is-search-hot`, which
+   lifts the whole nav over the cursor — see script §6). */
+.cursor--magnet.cursor--fill { background: var(--c-orange); border-width: 0; }
+
+/* Search: an orange disc opens under the glyph, which knocks out white.
+   Drawn by the button itself, not by the cursor — in the sticky state the
+   pill's own white background paints above the cursor (`.nav` is a single
+   stacking context), so a cursor-drawn disc simply disappeared there. */
+.nav__search-btn::before {
+  content: '';
+  position: absolute;
+  /* 69% wider than the button (two 30% steps). A percentage inset resolves
+     against the button itself, so the disc keeps the same ratio in the
+     shrunk sticky state. 40px button → 67.6px disc. */
+  inset: -34.5%;
+  z-index: -1;
+  border-radius: 50%;
+  background: var(--c-orange);
+  scale: 0;
+  transition: scale var(--ease);
+}
+.nav__search-btn:hover::before { scale: 1; }
+
+/* D — the sticky pill's hamburger: the cursor still wraps it, and the
+   rules themselves go orange */
+.nav__hamburger:hover img {
+  filter: invert(46%) sepia(89%) saturate(3098%) hue-rotate(359deg)
+          brightness(102%) contrast(104%);
+}
+.nav__hamburger img { transition: filter var(--ease); }
 
 /* nav links / 中文 / search use plain colour hovers (see NAVIGATION) */
 
@@ -397,6 +442,24 @@ body.lp-nav .nav__actions { opacity: 0; translate: 0 -18px; }
   transition: color var(--ease);
 }
 .nav__link:hover { color: var(--c-orange); }
+/* Hover: the type goes orange and a dot leads it in from the left. The
+   cursor no longer wraps these — it stays the plain travelling dot.
+   Absolutely placed so nothing shifts when it appears. */
+.nav__link { position: relative; }
+.nav__link::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 11px);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  translate: 0 -50%;
+  scale: 0;
+  transition: scale var(--ease);
+}
+.nav__link:hover::before { scale: 1; }
 /* current section — small orange dot beneath the link */
 .nav__link--active { position: relative; }
 .nav__link--active::after {
@@ -418,16 +481,32 @@ body.lp-nav .nav__actions { opacity: 0; translate: 0 -18px; }
 }
 .nav__lang { font-family: var(--f-sans); font-size: 15px; transition: color var(--ease); }
 .nav__lang:hover { color: var(--c-orange); }
+/* 中文 takes the dot underneath instead, like the active-section marker */
+.nav__lang { position: relative; }
+.nav__lang::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  translate: -50% 0;
+  scale: 0;
+  transition: scale var(--ease);
+}
+.nav__lang:hover::after { scale: 1; }
 
 /* Search button — round hit area; icon turns orange on hover */
 .nav__search-btn {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  overflow: hidden;
   flex-shrink: 0;
   /* the 29px glyph centred in the 40px tap target leaves a 5.5px gap to the
      button edge — nudge right so the icon itself sits flush on the col-6
@@ -442,9 +521,12 @@ body.lp-nav .nav__actions { opacity: 0; translate: 0 -18px; }
   flex-shrink: 0;
   transition: filter var(--ease);
 }
-/* colorise the black icon to brand orange (#ff6900) */
-.nav__search-btn:hover img {
-  filter: invert(46%) sepia(89%) saturate(3098%) hue-rotate(359deg) brightness(102%) contrast(104%);
+/* knocked out white on the orange disc */
+.nav__search-btn:hover img,
+.nav--v3 .nav__search-btn:hover img,
+.nav--v3.nav--scrolled .nav__search-btn:hover img {
+  filter: invert(100%) sepia(0%) saturate(0%) hue-rotate(0deg)
+          brightness(210%) contrast(100%);
 }
 
 /* Hamburger — mobile only */
@@ -632,6 +714,12 @@ button.nav__mobile-link {
 .search-overlay {
   position: fixed;
   inset: 0;
+  /* Opening the overlay scroll-locks the page, which gives html a
+     padding-right of the scrollbar width. The overlay is fixed and so spans
+     the full viewport — without the same gutter its centre sits ~7px right
+     of the page's, and the logo would visibly step sideways as the wipe
+     passes over the nav one. */
+  padding-right: var(--sbw, 0px);
   z-index: 300;                 /* above nav (100) and mobile menu (200) */
   background: var(--c-orange);
   visibility: hidden;
@@ -647,14 +735,41 @@ button.nav__mobile-link {
 /* top bar mirrors .nav__inner exactly, so the logo lines up with the nav logo
    and the close sits on the same right-hand grid margin */
 .search-overlay__bar {
-  display: flex;
+  /* Mirrors the nav exactly: three tracks with the logo dead centre, and
+     the close sitting on the left margin — the same spot the search button
+     it replaces occupies, so the two swap in place. */
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   height: 104px;
   max-width: 1920px;
   margin: 0 auto;
   padding: 0 var(--gm);
 }
+.search-overlay__logo  { grid-column: 2; }
+.search-overlay__close { grid-column: 1; grid-row: 1; justify-self: start; }
+
+/* On the V3 home the nav is not a 104px centred bar — it is top-padded with
+   the logo at y 32 — so the overlay bar has to follow, or the logo jumps as
+   the overlay wipes over it. Same position, same size, no jump. */
+body.home-v3 .search-overlay__bar {
+  height: auto;
+  align-items: start;
+  padding-top: 32px;
+  padding-bottom: 24px;
+}
+/* The close is the same circle the search button opens on hover — same
+   67.6px across, and pulled back by half the difference so it stays
+   centred on the 40px button it replaces. */
+body.home-v3 .search-overlay__close {
+  align-self: start;
+  width: 67.6px;
+  height: 67.6px;
+  margin-top: -13.8px;
+  margin-left: -13.8px;
+  border-color: rgba(255, 255, 255, 0.55);
+}
+body.home-v3 .search-overlay__close span { width: 22px; }
 .search-overlay__logo { display: block; }
 .search-overlay__logo img {
   height: var(--logo-h); width: auto; display: block;   /* matches the nav logo */
