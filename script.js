@@ -2113,12 +2113,19 @@ window.scrollTo(0, 0);
    13. Landing intro (Home V3) — from Figma R2 OPT1_01_Home_00_01 /
    _00_04 / _00_05:
 
-     1. the founder's motto types itself on, the attribution and the
-        big quote glyph settle under it, then the whole block fades
-     2. the seal fades up on its own, dead centre of the frame
-     3. it rises into the header — still just the seal, so nothing
+     1. 點 · 線 · 面 — the same three-stage graphic the Being /
+        Becoming / Belonging panels play on scroll (§8.7), run once
+        through at the centre of the frame: scattered dots gather into
+        one, the one writes itself out into a line, the line multiplies
+        into a plane, the plane fades
+     2. the founder's motto lifts in behind it — line, line, then the
+        attribution — holds, and fades. It is not typed: the graphic
+        has already carried the opening, and a typewriter after it read
+        as two openings stacked on each other
+     3. the seal fades up on its own, dead centre of the frame
+     4. it rises into the header — still just the seal, so nothing
         changes shape on the way up
-     4. once home the seal slides left as the wordmark is uncovered,
+     5. once home the seal slides left as the wordmark is uncovered,
         and the menu, banner copy and colour bar arrive with it
 
    The one thing this does NOT do is fly a *copy* of the lockup and
@@ -2146,11 +2153,26 @@ window.scrollTo(0, 0);
 
   /* --- the beats, in ms. Everything is here so the whole sequence can
          be re-timed without touching the logic below. ---------------- */
+  /* Each value is how long its own beat lasts, so a beat has to be at
+     least as long as the CSS transition it starts — the numbers in the
+     comments are what the stylesheet actually spends. */
   const T = {
-    start:  320,   /* beat before the first character                  */
-    type:    40,   /* per character                                    */
-    cite:   520,   /* attribution + quote glyph fade, once typed       */
-    hold1: 2400,   /* the finished motto sits — the longest pause in
+    /* 點 · 線 · 面 */
+    pre:    180,   /* dead air before the first dot                    */
+    drift: 1200,   /* the scattered dots fade in and wander            */
+    gather:1150,   /* they collapse onto the centre     (1.05s + .45s) —
+                      cut short on purpose: the row starts writing while
+                      the last few stragglers are still coming in, so the
+                      single dot is never left sitting there waiting      */
+    line:  2200,   /* the survivor writes out into a row (1.05s + 1.06s)*/
+    fuse:   820,   /* the row tightens into one rule            (0.95s) —
+                      also cut short, so the plane starts opening before
+                      the rule has quite finished reaching the ends      */
+    plane: 2000,   /* that rule multiplies up and down  (1.35s + 0.70s) */
+    planeH: 500,   /* the finished plane holds                         */
+    said:   480,   /* the plane fades (1.1s) — the words start into it */
+    /* the motto */
+    hold1: 1900,   /* the finished motto sits — the longest pause in
                       the sequence, so the words get read before the
                       logo act takes over                              */
     fade:   680,   /* motto fades out                                  */
@@ -2220,44 +2242,154 @@ window.scrollTo(0, 0);
   body.style.setProperty('--mark-y', markY().toFixed(2) + 'px');
   body.setAttribute('data-intro', 'hidden');
 
-  /* --- the motto overlay (JS-side so no-JS visitors never see it) --- */
+  /* --- the overlay (JS-side so no-JS visitors never see it) -------- */
   const intro = document.createElement('div');
   intro.className = 'opening';
   intro.setAttribute('aria-hidden', 'true');
   intro.innerHTML =
+    '<div class="opening__stage">' +
+      '<div class="opening__dots dots"></div>' +
+      '<div class="opening__dotrow dotrow"></div>' +
+      '<div class="opening__lines lines"></div>' +
+    '</div>' +
     '<div class="opening__motto">' +
-      '<p class="opening__quote"><span class="opening__quote-text"></span>' +
-      '<span class="opening__caret"></span></p>' +
+      '<p class="opening__quote">' +
+        QUOTE.map(function (l) {
+          return '<span class="opening__line"><i>' + l + '</i></span>';
+        }).join('') +
+      '</p>' +
       '<p class="opening__cite"></p>' +
       '<img class="opening__qm" src="assets/icons/quote-mark.svg" alt="" />' +
     '</div>';
   body.appendChild(intro);
 
-  const motto = intro.querySelector('.opening__motto');
-  const line  = intro.querySelector('.opening__quote-text');
+  const motto  = intro.querySelector('.opening__motto');
+  const stage  = intro.querySelector('.opening__stage');
+  const dots   = intro.querySelector('.opening__dots');
+  const dotrow = intro.querySelector('.opening__dotrow');
+  const lines  = intro.querySelector('.opening__lines');
   intro.querySelector('.opening__cite').textContent = CITE;
+
+  /* the quote lines lift one behind the other */
+  intro.querySelectorAll('.opening__line > i').forEach(function (el, n) {
+    el.style.setProperty('--dl', (n * 170) + 'ms');
+  });
 
   const timers = [];
   function at(ms, fn) { timers.push(window.setTimeout(fn, ms)); }
 
-  /* --- act one: type the motto ------------------------------------ */
-  const full = QUOTE.join('\n');
-  let i = 0;
-  function typeOn() {
-    i++;
-    /* the newline becomes a real break so the two lines land as designed */
-    line.innerHTML = full.slice(0, i).replace('\n', '<br>');
-    if (i < full.length) return timers.push(window.setTimeout(typeOn, T.type));
-    intro.classList.add('opening--cited');
+  /* --- act one: 點 · 線 · 面 --------------------------------------
+     Built here rather than in the markup for the same reason §8.7 builds
+     the panels' rows: the geometry is regular, and only the scatter is
+     hand-placed (straight off being-dots.svg, so the opening and the
+     Being panel are recognisably the same constellation).
+     ---------------------------------------------------------------- */
+
+  /* x%, y%, size%, opacity, delay — the delays are the panel's own,
+     halved, because the opening gathers in half the time */
+  const SCATTER = [
+    [ 0.00, 22.58, 1.72, 1,  190], [94.42, 44.21, 1.72, 1,   60],
+    [96.35,  0.00, 2.36, 1,  320], [73.18, 62.95, 1.07, 1,  120],
+    [98.71, 77.60, 1.29, 0.3, 410], [67.96, 32.43, 1.29, 0.1, 30],
+    [23.46, 47.83, 1.13, 0.5, 250], [40.13, 91.29, 1.07, 0.6, 350],
+    [78.48, 44.20, 1.29, 0.3, 150], [ 0.65, 95.65, 3.88, 0.4, 450],
+    [87.70, 23.01, 2.59, 0.1,  90], [44.17, 64.13, 2.59, 0.1, 280]
+  ];
+  const DRIFT = ['drift-a', 'drift-b', 'drift-c', 'drift-d'];
+  SCATTER.forEach(function (d, n) {
+    const dot = document.createElement('span');
+    dot.className = 'dots__dot ' + DRIFT[n % 4];
+    dot.style.cssText = '--x:' + d[0] + '%;--y:' + d[1] + '%;--s:' + d[2] +
+                        '%;--o:' + d[3] + ';--dl:' + d[4] + 'ms';
+    dots.appendChild(dot);
+  });
+  /* the core: the one dot the others collapse into, and the one the line
+     is then written out from. Same size as a row dot (1.95% of the stage)
+     so the handover between the two acts is a dot staying put, not a
+     swap. */
+  const core = document.createElement('span');
+  core.className = 'dots__dot dots__dot--core';
+  core.style.cssText = '--x:50%;--y:50%;--s:1.95%;--o:1;--dl:0ms';
+  dots.appendChild(core);
+
+  /* Slow-then-fast spread, same shape as §8.7: rings double as they go
+     out, so the delay grows with log2 of the distance from the middle —
+     the first few land one at a time, the rest rush out. */
+  function ringDelay(distance, beat) {
+    return Math.round(Math.log2(distance + 1) * beat) + 'ms';
   }
-  at(T.start, typeOn);
+
+  /* 線 — odd count so the row opens on the single centre dot. Positions
+     are written as calc(50% ± n·pitch) rather than i/count, so the middle
+     dot sits exactly on the frame's centre line whatever the width. */
+  const ROW = 33, ROW_MID = (ROW - 1) / 2, ROW_PITCH = 2.94;
+  for (let i = 0; i < ROW; i++) {
+    /* the centre slot is left empty on purpose — the gathered core dot is
+       already sitting there and stays for the whole act, so writing a
+       second dot over it would only spring-bump the one still point */
+    if (i === ROW_MID) continue;
+    const d = Math.abs(i - ROW_MID);
+    const dot = document.createElement('span');
+    dot.className = 'dotrow__dot';
+    dot.style.setProperty('--x', 'calc(50% + ' +
+      ((i - ROW_MID) * ROW_PITCH).toFixed(3) + '%)');
+    /* `d - 1`, so the first pair either side of the core starts growing
+       the instant the act does — with a plain ringDelay(d) they waited a
+       whole beat, and the single dot sat there looking finished */
+    dot.style.setProperty('--dl', ringDelay(d - 1, 260));
+    /* --dx: when this dot is swallowed by the rule drawing along the row.
+       The rule's scale runs 0 → 1 over 950ms on a hard ease-out, so its
+       leading edge is already most of the way along at half time; this is
+       a fit of that curve inverted, which is what keeps each dot going
+       out *with* the edge instead of trailing behind it. The 90ms lead
+       starts the fade just before the edge lands on it. */
+    dot.style.setProperty('--dx',
+      Math.max(0, Math.round(684 * Math.pow(d / ROW_MID, 1.6)) - 90) + 'ms');
+    dotrow.appendChild(dot);
+  }
+
+  /* 面 — 21 rules at the panels' 18px pitch, odd again so there is a
+     middle one to be the line the row fuses into. That middle rule is
+     tagged: it draws on its own beat, and the other twenty open out from
+     it afterwards — hence `d - 1`, so the first pair leaves the moment
+     the plane act starts rather than a beat into it. */
+  const RULES = 21, RULES_MID = (RULES - 1) / 2, RULE_PITCH = 18;
+  for (let i = 0; i < RULES; i++) {
+    const d = Math.abs(i - RULES_MID);
+    const rule = document.createElement('span');
+    rule.className = 'lines__line' + (d === 0 ? ' lines__line--mid' : '');
+    rule.style.setProperty('--y', 'calc(50% + ' +
+      ((i - RULES_MID) * RULE_PITCH) + 'px)');
+    rule.style.setProperty('--dl', d === 0 ? '0ms' : ringDelay(d - 1, 210));
+    lines.appendChild(rule);
+  }
 
   /* --- the clock --------------------------------------------------- */
-  const typed = T.start + full.length * T.type;
-  const tFade = typed + T.cite + T.hold1;
-  const tMark = tFade + T.fade + T.gap;
-  const tRise = tMark + T.mark + T.hold2;
-  const tOpen = tRise + T.rise + T.hold3;
+  /* each mark is the one before it plus the beat that fills the gap */
+  const tLit    = T.pre;
+  const tGather = tLit + T.drift;
+  const tLine   = tGather + T.gather;
+  const tFuse   = tLine + T.line;
+  const tPlane  = tFuse + T.fuse;
+  const tOut    = tPlane + T.plane + T.planeH;
+  const tSaid   = tOut + T.said;
+  const tFade   = tSaid + T.hold1;
+  const tMark   = tFade + T.fade + T.gap;
+  const tRise   = tMark + T.mark + T.hold2;
+  const tOpen   = tRise + T.rise + T.hold3;
+
+  at(tLit,    function () { dots.classList.add('is-lit'); });
+  at(tGather, function () { dots.classList.add('is-on'); });
+  at(tLine,   function () { dotrow.classList.add('is-on'); });
+  at(tFuse,   function () {
+    /* one solid rule draws along the finished row and takes the dots with
+       it: the dotted line tightens into a single line */
+    lines.classList.add('is-fuse');
+    stage.classList.add('opening__stage--fused');
+  });
+  at(tPlane,  function () { lines.classList.add('is-on'); });
+  at(tOut,    function () { stage.classList.add('opening__stage--out'); });
+  at(tSaid,   function () { intro.classList.add('opening--said'); });
 
   at(tFade, function () { motto.classList.add('opening__motto--out'); });
   at(tMark, function () { body.setAttribute('data-intro', 'centre'); });
