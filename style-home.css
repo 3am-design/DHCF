@@ -111,9 +111,11 @@ body.home-v3 {
   .nav--v3.nav--scrolled { position: fixed; background: transparent; box-shadow: none; }
   .nav--v3.nav--scrolled .nav__inner {
     height: 92.8px;
-    padding-top: 0;
+    /* R2 12058-617 hangs the pill 25.43px down inside the 92.8px bar — it is
+       not centred there, and the card below is measured off its bottom edge */
+    padding-top: 25.43px;
     padding-bottom: 0;
-    align-items: center;
+    align-items: start;
   }
   /* centred lockup and the stacked menu both drop out */
   .nav--v3.nav--scrolled .nav__logo,
@@ -139,11 +141,198 @@ body.home-v3 {
     .nav--v3.nav--scrolled .nav__actions { animation: none; }
   }
   .nav--v3.nav--scrolled .nav__seal { display: block; margin-right: 8.5px; }
+  /* Both pill glyphs are #808080, not black (R2). `invert(50%)` maps the
+     icons' pure black to exactly #808080 — no approximation — and hovering
+     the search takes it to brand orange with no disc opening underneath it
+     (style.css draws one for every other search button) and no cursor ring.
+
+     Every filter here lists the same six functions in the same order so the
+     hover interpolates, and the hue goes the short way round: 0 → +2deg. The
+     inherited recipe ended on `hue-rotate(359deg)`, which is the same colour
+     but drags the interpolation the whole way around the wheel while
+     `saturate` ramps up from 0 — that is what made icons flash through cyan
+     and green mid-hover. +2deg / brightness(104%) was picked by sampling the
+     rendered pixel: it lands on rgb(255,105,0), i.e. #ff6900 exactly, where
+     the old 359deg/102% chain came out at #ff6400. */
   .nav--v3.nav--scrolled .nav__search-btn { width: 22px; height: 22px; margin-right: 0; }
-  /* inside the white pill the glyph goes back to black, as the design draws it */
-  .nav--v3.nav--scrolled .nav__search-btn img { width: 22px; height: 22px; filter: none; }
+  .nav--v3.nav--scrolled .nav__search-btn img,
+  .nav--v3.nav--scrolled .nav__hamburger img {
+    filter: invert(50%) sepia(0%) saturate(0%) hue-rotate(0deg)
+            brightness(100%) contrast(100%);
+  }
+  .nav--v3.nav--scrolled .nav__search-btn img { width: 22px; height: 22px; }
+  .nav--v3.nav--scrolled .nav__search-btn::before { display: none; }   /* no orange disc */
+  .nav--v3.nav--scrolled .nav__search-btn:hover img,
+  .nav--v3.nav--scrolled .nav__hamburger:hover img {
+    filter: invert(46%) sepia(89%) saturate(3098%) hue-rotate(2deg)
+            brightness(104%) contrast(104%);
+  }
   .nav--v3.nav--scrolled .nav__hamburger { display: block; }
   .nav--v3.nav--scrolled .nav__hamburger img { width: 40.7px; }
+}
+
+
+/* ================================================================
+   00b — MEGA MENU (V3) — Figma R2 "02_Menu_A/B/C"
+   (nodes 12036-2 · 12036-585 · 12037-628)
+
+   Unstuck: a 530 × 724 white card pinned flush to the top-right corner,
+   growing downwards from the top edge. The four section links are NOT
+   duplicated into it — the card sits *behind* `.nav__inner` and the real
+   `.nav__menu` already lands on the Figma coordinates (32px from the top,
+   `--gm` from the right), so the links simply read off the white once it
+   is there. To their left is the hovered section's sub-menu, right-
+   aligned; the line-art fills the bottom and is clipped by the card.
+
+   Stuck (nodes 12058-8 / 12058-319): the bar is only the pill by then, so
+   the card drops to `top: 104px` / `right: --gm` — under the pill, not
+   behind it — and carries its own copy of the sections, `.nav__mega-menu`.
+   With no section open it is just those four links, and the card shrinks
+   to 216 × 197 to fit them (`.nav--mega-bare`).
+
+   `.nav__mega` is the white surface itself, not just a positioning box,
+   because the bare state has no `.nav__mega-panel` showing to paint it.
+
+   These rules restate most of the base mega block in style.css, which
+   still drives the old centred panel on Listing / Articles / index_tc.
+   ================================================================ */
+.nav--v3 .nav__mega {
+  top: 0;
+  left: auto;
+  right: 0;
+  width: 530px;
+  height: 724px;
+  background: var(--c-white);
+  overflow: hidden;            /* clips the line-art that bleeds off the left */
+  /* Below the bar, above the page. A negative z-index would also paint it
+     there, but it drops out of hit-testing behind the nav's own box — the
+     sub-links became unhoverable. So the card keeps a normal index and
+     `.nav__inner` is lifted over it instead (see below). */
+  z-index: 0;
+  transform: none;
+  /* "生出嚟": the white wipes down from the top edge rather than fading
+     in as a block. `visibility` still carries the delayed hand-off from
+     the base rules, so a closed card takes no clicks. */
+  clip-path: inset(0 0 100% 0);
+  transition: opacity 0.2s ease,
+              clip-path 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+              visibility 0s linear 0.5s;
+}
+.nav--v3.nav--mega-open .nav__mega {
+  transform: none;
+  clip-path: inset(0 0 0 0);
+  transition: opacity 0.2s ease,
+              clip-path 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+              width 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+              height 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav--v3 .nav__mega { clip-path: none; }
+}
+
+/* the panel is now just a transparent frame for the sub-menu + art; the
+   white and the clipping both moved up to `.nav__mega` */
+.nav--v3 .nav__mega-panel {
+  min-height: 0;
+  height: 724px;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+/* sticky-only copy of the section links, on the same 32.5 / 52.5 insets
+   the real `.nav__menu` uses against the card */
+.nav__mega-menu { display: none; }
+.nav--v3 .nav__mega-menu {
+  position: absolute;
+  top: 32.5px;
+  right: 52.5px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;                   /* 34px baseline pitch − 22px line box */
+  z-index: 1;
+}
+.nav--v3 .nav__mega-label { display: none; }   /* the orange link + dot is the label now */
+
+/* sub-menu — right-aligned, its right edge at panel-x 312 (= 218 from the
+   panel's right edge), first baseline at 26px, 34px pitch */
+.nav--v3 .nav__mega-links {
+  top: 26px;
+  left: auto;
+  right: 218px;
+  text-align: right;
+}
+.nav--v3 .nav__mega-links a {
+  font-size: 18px;
+  line-height: 34px;
+  color: var(--c-grey);
+  white-space: nowrap;
+}
+.nav--v3 .nav__mega-links a:hover { color: var(--c-orange); }
+
+/* The panel sits *under* `.nav__inner` — that is what lets the section links
+   read off the white. `.nav__inner` is a full-width transparent grid, so it
+   also swallowed the pointer over the whole top of the panel and the first
+   four sub-links could never be hovered or clicked. Lift the bar over the
+   panel for painting, but make it transparent to the pointer and hand that
+   back to the controls themselves. `.nav__menu` has to stay out of it too:
+   it is a whole 1fr grid column wide, so its empty half covers the
+   sub-menu column. */
+.nav--v3 .nav__inner { position: relative; z-index: 1; }
+.nav--v3 .nav__inner,
+.nav--v3 .nav__menu { pointer-events: none; }
+.nav--v3 .nav__logo,
+.nav--v3 .nav__actions,
+.nav--v3 .nav__link { pointer-events: auto; }
+
+/* line-art — Figma places each one bleeding off the panel's left edge */
+.nav--v3 .nav__mega-panel[data-mega-panel="work"] .nav__mega-art {
+  width: 372px; left: -20px; top: 396px; bottom: auto;
+}
+.nav--v3 .nav__mega-panel[data-mega-panel="impact"] .nav__mega-art {
+  width: 584px; left: -99px; top: 378px;
+}
+/* About's art was re-drawn in R2 (node 12041-718) and is the one piece that
+   sits wholly inside the panel rather than bleeding off its left edge. */
+.nav--v3 .nav__mega-panel[data-mega-panel="about"] .nav__mega-art {
+  width: 349px; left: 61px; top: 298px;
+}
+
+/* the open section: orange, with the 4px dot leading it in. The dot is
+   the `.nav__link::before` that already exists for hover in style.css —
+   R2 just draws it smaller and tighter than the legacy nav did. */
+.nav--v3 .nav__link::before {
+  width: 4px;
+  height: 4px;
+  right: calc(100% + 5px);
+}
+.nav--v3 .nav__link--mega-active { color: var(--c-orange); }
+.nav--v3 .nav__link--mega-active::before { scale: 1; }
+
+/* --- sticky + open (R2 nodes 12058-8 / 12058-319) ------------------
+   The pill stays exactly where it is and the card drops out from under
+   it: same 530 × 724 card, but at `top: 104px` / `right: --gm` instead
+   of hard into the corner, and carrying its own section list. Nothing
+   else about the bar comes back — no logo, no 中文, no stacked menu.
+   Scoped to desktop, like the pill rules above. */
+@media (min-width: 768px) {
+  .nav--v3.nav--scrolled .nav__mega {
+    top: 104px;
+    right: var(--gm);
+  }
+  .nav--v3.nav--scrolled .nav__mega-menu { display: flex; }
+  /* `.nav`'s box is only as tall as `.nav__inner` (92.8px), and the card
+     starts at 104 — so the 11px between them belonged to the page, not the
+     nav, and sliding from the pill down to the sub-menu fired `mouseleave`
+     and shut the card. Stretch the bar down to meet the card while it is
+     open and the two become one continuous hover region. */
+  .nav--v3.nav--scrolled.nav--mega-open .nav__inner { height: 104px; }
+  /* no section open (nothing hovered, or Connect — which has no panel):
+     the card is only the four links, so it shrinks to fit them */
+  .nav--v3.nav--scrolled.nav--mega-bare .nav__mega {
+    width: 216px;
+    height: 197px;
+  }
 }
 
 
@@ -855,7 +1044,7 @@ body.home-v3[data-intro='open'] .nav__logo {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 34px 40px 40px 56px;
+  padding: 26px 40px 37px 56px;
 }
 .card-v3__title {
   font-family: var(--f-sans);
@@ -871,17 +1060,39 @@ body.home-v3[data-intro='open'] .nav__logo {
   font-size: 16px;
   line-height: 26px;
   color: var(--c-grey);
-  margin-top: 24px;
+  margin-top: 17px;
   transition: color var(--ease);
 }
+/* R2 re-cut the card foot (node 12041-705): the category line dropped to a
+   small orange label and a row of pill tags sits under it. `margin-top: auto`
+   stays on the category so the whole meta block hangs off the card's bottom
+   however long the title and description run. */
 .card-v3__cat {
   font-family: var(--f-sans);
-  font-size: 16px;
+  font-size: 12px;
   line-height: 25px;
-  color: var(--c-grey);
+  color: var(--c-orange);
   margin-top: auto;
-  padding-top: 32px;
+  padding-top: 7px;
   transition: color var(--ease);
+}
+.card-v3__tags {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3.4px;
+  margin-top: 5px;
+}
+.card-v3__tags li {
+  font-family: var(--f-sans);
+  font-weight: 400;
+  font-size: 11px;
+  line-height: 22.5px;
+  color: var(--c-black);
+  background: #fff4ec;      /* a shade lighter than the page peach */
+  border-radius: 100px;
+  padding: 0 6.5px;
+  white-space: nowrap;
 }
 
 /* the button sits close under the cards (Figma 48px); the extra air the
@@ -893,6 +1104,10 @@ body.home-v3[data-intro='open'] .nav__logo {
 .btn-pill {
   display: inline-flex;
   align-items: center;
+  /* the arrow sits on the right margin line, not trailing the label: the
+     label starts on the left padding and the arrow ends on the right one,
+     so every pill has the same inset on both sides whatever the label */
+  justify-content: space-between;
   gap: 12px;
   min-width: 151px;
   height: 49px;
@@ -912,19 +1127,32 @@ body.home-v3[data-intro='open'] .nav__logo {
   background: var(--c-white);
   color: var(--c-orange);
 }
+/* The glyph is painted, not filtered: the SVG is a mask and `currentColor`
+   fills it, so the arrow simply *is* the pill's text colour — exactly
+   `--c-orange` on hover, and it rides the same colour transition instead of
+   a second, approximate filter chain.
+
+   The mask sources here and on the footer icons are inlined as data URIs
+   rather than `url(assets/…)`: Chrome refuses to load an external mask
+   image over `file://`, so a double-clicked copy of the page would show
+   the pills and the social icons with no glyph at all. */
 .btn-pill__arrow {
   width: 15px;
-  height: auto;
+  height: 7.27px;                           /* icon-arrow.svg is 15 × 7.266 */
   flex-shrink: 0;
-  filter: brightness(0) invert(1);          /* white on the orange ground */
-  transition: translate var(--ease), filter var(--ease);
+  background: currentColor;
+  -webkit-mask-image: var(--icon);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+  mask-image: var(--icon);
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  --icon: url("data:image/svg+xml,%3Csvg preserveAspectRatio=%22xMidYMid meet%22 width=%2215%22 height=%227.26562%22 overflow=%22visible%22 style=%22display: block;%22 viewBox=%220 0 15 7.26562%22 fill=%22none%22 xmlns=%22http://www.w3.org/2000/svg%22%3E %3Cg id=%22Group%22%3E %3Cpath id=%22Vector%22 d=%22M14.8281 3.21805C14.828 3.21788 14.8278 3.21767 14.8276 3.2175L11.766 0.170623C11.5366 -0.0576289 11.1656 -0.0567794 10.9373 0.172615C10.709 0.40198 10.7099 0.772967 10.9393 1.00125L12.9949 3.04687H0.585938C0.262324 3.04687 0 3.3092 0 3.63281C0 3.95642 0.262324 4.21875 0.585938 4.21875H12.9948L10.9393 6.26437C10.7099 6.49265 10.7091 6.86364 10.9373 7.09301C11.1657 7.32243 11.5367 7.32322 11.766 7.095L14.8276 4.04812C14.8278 4.04795 14.828 4.04774 14.8282 4.04757C15.0577 3.81852 15.0569 3.44634 14.8281 3.21805Z%22 fill=%22black%22/%3E %3C/g%3E %3C/svg%3E");
+  transition: translate var(--ease);
 }
-.btn-pill:hover .btn-pill__arrow {
-  translate: 4px 0;
-  /* the same black → #ff6900 recipe the nav icons use */
-  filter: invert(46%) sepia(89%) saturate(3098%) hue-rotate(359deg)
-          brightness(102%) contrast(104%);
-}
+.btn-pill:hover .btn-pill__arrow { translate: 4px 0; }
 
 
 /* ================================================================
@@ -1063,21 +1291,32 @@ body.home-v3[data-intro='open'] .nav__logo {
 .footer-v3__nav a:hover { color: var(--c-orange); }
 
 .footer-v3__social { display: flex; gap: 29px; margin-top: 45px; }
-/* black → #808080, and → brand orange on hover. Both declarations list
-   the same six functions in the same order: with mismatched lists the
-   filter cannot interpolate and the icons flickered through stray hues
-   on the way across. */
-.footer-v3__social img {
+/* #808080 → brand orange. These were filter chains, and even with matching
+   function lists the hover swept `hue-rotate(0deg)` → `hue-rotate(359deg)`
+   — the long way round the colour wheel — while `saturate` ramped up from
+   0%, so the glyphs flashed through cyan and green on the way across. It
+   also only ever *approximated* #ff6900.
+   Masking fixes both: the SVG becomes the mask and `background-color` does
+   the colouring, so the icons interpolate grey → orange in a straight line
+   and land on the exact token. */
+.footer-v3__social-icon {
+  display: block;
   width: 26px;
   height: 26px;
-  filter: invert(50%) sepia(0%) saturate(0%) hue-rotate(0deg)
-          brightness(100%) contrast(100%);
-  transition: filter var(--ease);
+  background-color: var(--c-grey);
+  -webkit-mask-image: var(--icon);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+  mask-image: var(--icon);
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  transition: background-color var(--ease);
 }
-.footer-v3__social a:hover img {
-  filter: invert(46%) sepia(89%) saturate(3098%) hue-rotate(359deg)
-          brightness(102%) contrast(104%);
-}
+.footer-v3__social-icon--linkedin  { --icon: url("data:image/svg+xml,%3Csvg preserveAspectRatio=%22xMidYMid meet%22 width=%2225.6%22 height=%2225.6002%22 overflow=%22visible%22 style=%22display: block;%22 viewBox=%220 0 25.6 25.6002%22 fill=%22none%22 xmlns=%22http://www.w3.org/2000/svg%22%3E %3Cg id=%22_x31_0.Linkedin%22%3E %3Cpath id=%22Vector%22 d=%22M25.6 25.6V16.224C25.6 11.616 24.608 8.096 19.232 8.096C16.64 8.096 14.912 9.504 14.208 10.848H14.144V8.512H9.056V25.6H14.368V17.12C14.368 14.88 14.784 12.736 17.536 12.736C20.256 12.736 20.288 15.264 20.288 17.248V25.568H25.6V25.6Z%22 fill=%22black%22/%3E %3Cpath id=%22Vector_2%22 d=%22M0.416 8.512H5.728V25.6H0.416V8.512Z%22 fill=%22black%22/%3E %3Cpath id=%22Vector_3%22 d=%22M3.072 0C1.376 0 0 1.376 0 3.072C0 4.768 1.376 6.176 3.072 6.176C4.768 6.176 6.144 4.768 6.144 3.072C6.144 1.376 4.768 0 3.072 0Z%22 fill=%22black%22/%3E %3C/g%3E %3C/svg%3E"); }
+.footer-v3__social-icon--instagram { --icon: url("data:image/svg+xml,%3Csvg preserveAspectRatio=%22xMidYMid meet%22 width=%2226%22 height=%2226%22 overflow=%22visible%22 style=%22display: block;%22 viewBox=%220 0 26 26%22 fill=%22none%22 xmlns=%22http://www.w3.org/2000/svg%22%3E %3Cg id=%22instagram 1%22 clip-path=%22url(%23clip0_0_147)%22%3E %3Cpath id=%22Vector%22 d=%22M25.9746 7.64407C25.9137 6.26259 25.6903 5.31284 25.3702 4.48986C25.0401 3.61629 24.5322 2.83419 23.8667 2.18402C23.2166 1.52374 22.4293 1.01066 21.5659 0.685681C20.7381 0.365657 19.7933 0.142255 18.4118 0.0813452C17.02 0.015277 16.5782 3.01756e-08 13.0482 3.01756e-08C9.51823 3.01756e-08 9.07638 0.015277 7.68974 0.0761868C6.30826 0.137097 5.35851 0.360697 4.53573 0.680522C3.66196 1.01067 2.87986 1.51858 2.22969 2.18402C1.56941 2.83419 1.05654 3.62145 0.731353 4.4849C0.411329 5.31284 0.187927 6.25743 0.127018 7.63891C0.0609494 9.03071 0.0456724 9.47255 0.0456724 13.0025C0.0456724 16.5325 0.0609494 16.9744 0.121859 18.361C0.182769 19.7425 0.406369 20.6922 0.726393 21.5152C1.05654 22.3888 1.56941 23.1709 2.22969 23.8211C2.87986 24.4813 3.66712 24.9944 4.53057 25.3194C5.35851 25.6394 6.30311 25.8628 7.68478 25.9237C9.07122 25.9848 9.51327 25.9999 13.0433 25.9999C16.5732 25.9999 17.0151 25.9848 18.4017 25.9237C19.7832 25.8628 20.733 25.6394 21.5557 25.3194C23.3031 24.6438 24.6846 23.2624 25.3601 21.5152C25.6799 20.6873 25.9035 19.7425 25.9644 18.361C26.0254 16.9744 26.0406 16.5325 26.0406 13.0025C26.0406 9.47255 26.0355 9.03071 25.9746 7.64407ZM23.6332 18.2594C23.5773 19.5292 23.364 20.2149 23.1862 20.672C22.7493 21.8047 21.8504 22.7037 20.7177 23.1405C20.2606 23.3183 19.5699 23.5316 18.3051 23.5873C16.9337 23.6484 16.5224 23.6635 13.0534 23.6635C9.58429 23.6635 9.16785 23.6484 7.80145 23.5873C6.53167 23.5316 5.84598 23.3183 5.38886 23.1405C4.8252 22.9322 4.31213 22.6021 3.89568 22.1703C3.46396 21.7487 3.13382 21.2408 2.92549 20.6772C2.74772 20.22 2.53444 19.5292 2.47869 18.2646C2.41758 16.8932 2.4025 16.4817 2.4025 13.0127C2.4025 9.54358 2.41758 9.12713 2.47869 7.76093C2.53444 6.49115 2.74772 5.80547 2.92549 5.34835C3.13382 4.78449 3.46396 4.27162 3.90084 3.85497C4.32225 3.42325 4.83016 3.0931 5.39402 2.88498C5.85114 2.70721 6.54198 2.49393 7.8066 2.43798C9.17797 2.37707 9.58945 2.36179 13.0583 2.36179C16.5326 2.36179 16.9439 2.37707 18.3103 2.43798C19.58 2.49393 20.2657 2.70721 20.7228 2.88498C21.2865 3.0931 21.7996 3.42325 22.216 3.85497C22.6477 4.27658 22.9779 4.78449 23.1862 5.34835C23.364 5.80547 23.5773 6.49611 23.6332 7.76093C23.6941 9.13229 23.7094 9.54358 23.7094 13.0127C23.7094 16.4817 23.6941 16.8881 23.6332 18.2594Z%22 fill=%22black%22/%3E %3Cpath id=%22Vector_2%22 d=%22M13.0482 6.3235C9.36089 6.3235 6.36917 9.31502 6.36917 13.0025C6.36917 16.6901 9.36089 19.6816 13.0482 19.6816C16.7357 19.6816 19.7273 16.6901 19.7273 13.0025C19.7273 9.31502 16.7357 6.3235 13.0482 6.3235ZM13.0482 17.3351C10.6561 17.3351 8.71569 15.3949 8.71569 13.0025C8.71569 10.6102 10.6561 8.67001 13.0482 8.67001C15.4406 8.67001 17.3807 10.6102 17.3807 13.0025C17.3807 15.3949 15.4406 17.3351 13.0482 17.3351Z%22 fill=%22black%22/%3E %3Cpath id=%22Vector_3%22 d=%22M21.5508 6.05943C21.5508 6.9205 20.8526 7.61868 19.9913 7.61868C19.1303 7.61868 18.4321 6.9205 18.4321 6.05943C18.4321 5.19816 19.1303 4.50018 19.9913 4.50018C20.8526 4.50018 21.5508 5.19816 21.5508 6.05943Z%22 fill=%22black%22/%3E %3C/g%3E %3Cdefs%3E %3CclipPath id=%22clip0_0_147%22%3E %3Crect width=%2226%22 height=%2226%22 fill=%22white%22/%3E %3C/clipPath%3E %3C/defs%3E %3C/svg%3E"); }
+.footer-v3__social a:hover .footer-v3__social-icon { background-color: var(--c-orange); }
 
 .footer-v3__legal { display: flex; flex-direction: column; gap: 18px; }
 .footer-v3__legal a {

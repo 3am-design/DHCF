@@ -93,6 +93,9 @@ window.scrollTo(0, 0);
   }
 
   btn.addEventListener('click', function () {
+    /* Home V3 on a desktop pointer: the sticky pill's hamburger opens the
+       right-hand mega panel instead (§13), so leave the click to it. */
+    if (window.__megaOwnsBurger && window.__megaOwnsBurger()) return;
     const willOpen = !menu.classList.contains('nav__mobile-menu--open');
     if (willOpen) setRevealOrigin(menu, btn);
     setOpen(willOpen);
@@ -890,7 +893,8 @@ window.scrollTo(0, 0);
        border, so +9 on each dimension leaves about 2px of clearance).
        Plain-text links/tabs have no padded box of their own, so give them a
        roomier wrap instead of hugging the glyphs — the sticky nav links and
-       the news filter tabs (All / Learning / Stories / News). */
+       the legacy `.news__filter` tabs. (The R2 home tabs, `.news-v3__filter`,
+       are excluded from the magnet entirely and keep the plain dot.) */
     const roomy = el.matches && el.matches('.nav__link, .nav__lang, .news__filter');
     /* the nav search button gets a 20% bigger ring on hover — but not in the
        shrunk sticky state */
@@ -916,9 +920,20 @@ window.scrollTo(0, 0);
 
   /* Search is the only control that swallows the cursor: the dot collapses
      into it and the button's own orange disc is left doing the work — one
-     clean circle, no ring around it. */
+     clean circle, no ring around it. Except in the V3 sticky pill, where the
+     glyph just goes orange and no disc opens: absorbing the dot there would
+     leave nothing at all under the pointer, so it keeps the plain dot. */
+  const navV3 = document.getElementById('nav');
+  function pillSearch(b) {
+    return b.matches('.nav__search-btn') && navV3 &&
+           navV3.classList.contains('nav--v3') &&
+           navV3.classList.contains('nav--scrolled');
+  }
   document.querySelectorAll('.nav__search-btn, .search-overlay__close').forEach(function (b) {
-    b.addEventListener('mouseenter', function () { cursor.classList.add('cursor--absorb'); });
+    b.addEventListener('mouseenter', function () {
+      if (pillSearch(b)) return;
+      cursor.classList.add('cursor--absorb');
+    });
     b.addEventListener('mouseleave', release);
   });
   /* Menu links and 中文 no longer get wrapped by the cursor — they have
@@ -930,10 +945,11 @@ window.scrollTo(0, 0);
        orange disc — a cursor ring on top of that would just be a second
        circle around the first. */
     if (el.matches('.nav__hamburger, .nav__search-btn')) return;
-    /* listing filters / breadcrumb use a plain colour hover — no magnet wrap;
-       the mobile menu + search overlay use an underline-draw hover instead of
-       the cursor frame */
+    /* listing filters / breadcrumb and the R2 news tabs use a plain colour
+       hover — no magnet wrap, just the travelling dot; the mobile menu +
+       search overlay use an underline-draw hover instead of the cursor frame */
     if (el.closest('.listing__filters') || el.closest('.listing__crumb') ||
+        el.closest('.news-v3__filters') ||
         el.closest('.nav__mobile-menu') ||
         el.closest('.search-overlay')) return;
     el.addEventListener('mouseenter', function () { engage(el); });
@@ -1727,9 +1743,24 @@ window.scrollTo(0, 0);
   if (!nav || !mega) return;
   if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
 
-  const links   = Array.prototype.slice.call(nav.querySelectorAll('.nav__menu .nav__link'));
+  /* Two sets of section links drive the same panels: the bar's own stacked
+     menu, and the copy inside the card that only shows once the bar has
+     collapsed to the pill (R2 12058-8 / 12058-319). */
+  const links   = Array.prototype.slice.call(
+    nav.querySelectorAll('.nav__menu .nav__link, .nav__mega-menu .nav__link'));
   const panels  = Array.prototype.slice.call(mega.querySelectorAll('.nav__mega-panel'));
   let closeTimer = null;
+
+  /* Home V3 corner panel (R2 "02_Menu"): once the bar has collapsed to the
+     white pill there is nothing left to hover, so the pill's hamburger
+     becomes the opener — and §2 has to keep its hands off it. Only where
+     the panel is actually laid out (style.css hides it under 900px). */
+  const v3     = nav.classList.contains('nav--v3');
+  const burger = nav.querySelector('.nav__hamburger');
+  function burgerOpens() {
+    return v3 && !!burger && window.matchMedia('(min-width: 900px)').matches;
+  }
+  window.__megaOwnsBurger = burgerOpens;
 
   /* ---- draw-in illustrations -------------------------------------------
      Inline each panel's SVG so its strokes can be animated, then redraw it
@@ -1846,34 +1877,67 @@ window.scrollTo(0, 0);
                       mega.querySelector('.nav__mega-panel.is-active[data-mega-panel="' + key + '"]');
     nav.classList.add('nav--mega-open');
     mega.setAttribute('aria-hidden', 'false');
+    /* no section → the card is just the four links, and CSS shrinks it */
+    nav.classList.toggle('nav--mega-bare', !key);
     panels.forEach(function (p) { p.classList.toggle('is-active', p.dataset.megaPanel === key); });
     links.forEach(function (l) { l.classList.toggle('nav__link--mega-active', l.dataset.mega === key); });
-    if (!wasActive && !reduce && drawables[key]) startDraw(drawables[key]);
+    if (key && !wasActive && !reduce && drawables[key]) startDraw(drawables[key]);
   }
   function close() {
-    nav.classList.remove('nav--mega-open');
+    nav.classList.remove('nav--mega-open', 'nav--mega-bare');
     mega.setAttribute('aria-hidden', 'true');
     panels.forEach(function (p) { p.classList.remove('is-active'); });
     links.forEach(function (l) { l.classList.remove('nav__link--mega-active'); });
+    if (burger) burger.setAttribute('aria-expanded', 'false');
+  }
+  function isOpen() { return nav.classList.contains('nav--mega-open'); }
+  /* Stuck, the card is also carrying the four section links, so a sectionless
+     hover (Connect) must leave it standing — it just collapses to the small
+     menu-only card. Unstuck there is nothing to keep open, so it closes. */
+  function leaveSection() {
+    if (nav.classList.contains('nav--scrolled') && isOpen()) open('');
+    else close();
   }
 
   /* a section link opens its panel; any other nav link closes the menu */
   links.forEach(function (l) {
     l.addEventListener('mouseenter', function () {
-      if (l.dataset.mega) open(l.dataset.mega); else close();
+      if (l.dataset.mega) open(l.dataset.mega); else leaveSection();
     });
   });
-  /* hovering the logo or the right-side actions closes it too */
+  /* hovering the logo or the right-side actions closes it too — except in
+     the sticky state, where the actions hold the hamburger that opened it */
   nav.querySelectorAll('.nav__logo, .nav__actions').forEach(function (el) {
-    el.addEventListener('mouseenter', close);
+    el.addEventListener('mouseenter', function () {
+      if (nav.classList.contains('nav--scrolled')) return;
+      close();
+    });
   });
 
-  /* leaving the whole nav (bar + open panel) closes, with a small grace
-     period so crossing the gap from a link to the panel doesn't flicker */
+  /* sticky: the pill's hamburger toggles the card, opening on Work with its
+     sub-menu already showing rather than the bare four-link state — there is
+     something to read the moment it appears. */
+  if (burger) {
+    burger.addEventListener('click', function () {
+      if (!burgerOpens()) return;              /* narrow viewport → §2's overlay */
+      if (isOpen()) { close(); return; }
+      open('work');
+      burger.setAttribute('aria-expanded', 'true');
+    });
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && isOpen()) close();
+  });
+
+  /* Leaving the whole nav (bar + open card) closes, after a grace period so
+     that crossing a gap on the way to the card doesn't drop it. The stuck
+     layout has a real one — the card hangs 17px below the pill — and that is
+     bridged in CSS by stretching `.nav__inner` down to meet it; this window
+     just covers a fast diagonal across the corner. */
   nav.addEventListener('mouseenter', function () { clearTimeout(closeTimer); });
   nav.addEventListener('mouseleave', function () {
     clearTimeout(closeTimer);
-    closeTimer = window.setTimeout(close, 120);
+    closeTimer = window.setTimeout(close, 220);
   });
 })();
 
