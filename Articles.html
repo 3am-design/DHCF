@@ -11,14 +11,22 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Fira+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=4.2" />
+  <!-- Shared base (reset, tokens, nav shell, mobile menu, search, cursor) -->
+  <link rel="stylesheet" href="style.css?v=6.7" />
+  <!-- R2 nav / footer / canvas. Written for the home page, but nothing in
+       the nav, mega, colour bar or footer blocks is scoped to `body.home-v3`
+       — they key off `.nav--v3` and their own class names — so the inner
+       pages pick them up by loading the same file. The landing sections it
+       also carries have no markup here and cost nothing.
+       `body.inner-v3` (§09) is what re-cuts the page itself for them. -->
+  <link rel="stylesheet" href="style-home.css?v=6.7" />
 </head>
-<body class="listing-page article-page">
+<body class="listing-page article-page inner-v3">
 
   <!-- ============================================================
-       00 — NAVIGATION
+       00 — NAVIGATION   (V3: search left · logo centred · stacked menu right)
        ============================================================ -->
-  <header class="nav" id="nav">
+  <header class="nav nav--v3" id="nav">
     <div class="nav__inner">
 
       <a href="index.html" class="nav__logo" aria-label="D. H. Chen Foundation home">
@@ -27,27 +35,41 @@
 
       <nav class="nav__menu" aria-label="Main navigation">
         <a href="#" class="nav__link" data-mega="work">Work</a>
-        <a href="#" class="nav__link nav__link--active" data-mega="impact">Impact</a>
+        <a href="Listing.html" class="nav__link nav__link--active" data-mega="impact">Impact</a>
         <a href="#" class="nav__link" data-mega="about">About</a>
         <a href="#" class="nav__link">Connect</a>
       </nav>
 
       <div class="nav__actions">
-        <a href="Articles_tc.html" class="nav__lang">中文</a>
+        <!-- sticky bar only: the seal joins search + hamburger inside the
+             white pill (Figma R2 "stick" / node 12014-44) -->
+        <a href="index.html" class="nav__seal" aria-label="D. H. Chen Foundation home">
+          <img src="assets/icons/logo-seal.svg" alt="" />
+        </a>
         <button class="nav__search-btn" aria-label="Search">
           <img src="assets/icons/icon-search.svg" alt="" />
         </button>
+        <a href="Articles_tc.html" class="nav__lang">中文</a>
         <button class="nav__hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
           <img src="assets/icons/icon-hamburger.svg" alt="" />
         </button>
       </div>
     </div>
 
-    <!-- Desktop mega-menu (opens on hover; closes when the cursor leaves the nav) -->
+    <!-- Desktop mega-menu — R2 "02_Menu": a 530 × 724 white card in the
+         top-right corner, growing down from the top edge, sitting *behind*
+         the stacked menu so the section links read off the white. Stuck,
+         it drops below the pill and carries its own copy of the four
+         sections (`.nav__mega-menu`). Same markup as the home page. -->
     <div class="nav__mega" id="nav-mega" aria-hidden="true">
+      <div class="nav__mega-menu">
+        <a href="#" class="nav__link" data-mega="work">Work</a>
+        <a href="Listing.html" class="nav__link" data-mega="impact">Impact</a>
+        <a href="#" class="nav__link" data-mega="about">About</a>
+        <a href="#" class="nav__link">Connect</a>
+      </div>
       <div class="nav__mega-panel" data-mega-panel="work">
-        <span class="nav__mega-label">Work</span>
-        <img class="nav__mega-art" src="assets/images/menu-work.svg" alt="" aria-hidden="true" />
+        <img class="nav__mega-art" src="assets/images/menu-work-v3.svg" alt="" aria-hidden="true" />
         <ul class="nav__mega-links">
           <li><a href="#">Overview</a></li>
           <li><a href="#">Approach</a></li>
@@ -57,7 +79,6 @@
         </ul>
       </div>
       <div class="nav__mega-panel" data-mega-panel="impact">
-        <span class="nav__mega-label">Impact</span>
         <img class="nav__mega-art" src="assets/images/menu-impact.svg" alt="" aria-hidden="true" />
         <ul class="nav__mega-links">
           <li><a href="#">Overview</a></li>
@@ -67,8 +88,7 @@
         </ul>
       </div>
       <div class="nav__mega-panel" data-mega-panel="about">
-        <span class="nav__mega-label">About</span>
-        <img class="nav__mega-art" src="assets/images/menu-about.svg" alt="" aria-hidden="true" />
+        <img class="nav__mega-art" src="assets/images/menu-about-v3.svg" alt="" aria-hidden="true" />
         <ul class="nav__mega-links">
           <li><a href="#">Overview</a></li>
           <li><a href="#">Our Origin</a></li>
@@ -171,13 +191,9 @@
          ============================================================ -->
     <article class="article" id="article">
 
-      <!-- background: soft blur glows (behind everything) -->
-      <div class="article__decor" aria-hidden="true">
-        <img src="assets/images/blur_04.png" alt="" class="article__blur article__blur--a" />
-        <img src="assets/images/blur_01.png" alt="" class="article__blur article__blur--b" />
-        <img src="assets/images/blur_04.png" alt="" class="article__blur article__blur--c" />
-        <img src="assets/images/blur_01.png" alt="" class="article__blur article__blur--d" />
-      </div>
+      <!-- R2 retired the blurred gradient canvas: one flat peach runs the
+           whole page, so the blur glows that used to sit behind the article
+           are gone rather than hidden. -->
 
       <!-- ── header: breadcrumb · title · subtitle · tags ────────── -->
       <header class="article__head">
@@ -248,9 +264,18 @@
           <p class="article__text">At times like this, however, the local community needs even more support from nonprofits to provide a safety net of various services than ever before. To weather the storm together as a companion, The D. H. Chen Foundation (“the Foundation”) initiated Project Fuel (“the Project”) which provides emergency financial support to its selected Hong Kong’s small-sized, non-subvented nonprofits (“the Awardees”) in order to maintain their core operations amid this challenging moment.</p>
 
           <!-- image carousel -->
+          <!-- Slides carry their own caption in `data-caption`; script §12
+               swaps it with the image. The count in the nav below is filled
+               in from the number of slides, so adding or removing an <img>
+               here is the only edit a new picture needs. -->
           <figure class="article__figure" data-carousel>
             <div class="article__figure-media">
-              <img src="assets/images/art-fuel-main.png" alt="Project Fuel 3.0 awardees at the Session 0 of Fellowship" />
+              <img src="assets/images/art-fuel-main.png" alt="Project Fuel 3.0 awardees at the Session 0 of Fellowship"
+                   data-caption="Project Fuel 3.0 awardees at the Session 0 of Fellowship" />
+              <img src="assets/images/news-5.png" alt="Hong Kong's skyline at dusk"
+                   data-caption="Hong Kong's skyline at dusk" loading="lazy" />
+              <img src="assets/images/news-6.png" alt="A shared workspace in Hong Kong"
+                   data-caption="A shared workspace in Hong Kong" loading="lazy" />
             </div>
             <figcaption class="article__figcaption">
               <span class="article__caption">Project Fuel 3.0 awardees at the Session 0 of Fellowship</span>
@@ -386,46 +411,59 @@
   <!-- ============================================================
        05 — FOOTER
        ============================================================ -->
-  <footer class="footer" id="footer">
+  <!-- ============================================================
+       07 — COLOUR BAR
+       ============================================================ -->
+  <div class="wrap">
+    <!-- draws itself left → right as it comes into view -->
+    <div class="colourbar" data-motion="bar" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+  </div>
 
-    <div class="footer__inner">
 
-      <div class="footer__logo">
-        <img src="assets/icons/logo-footer.svg" alt="D. H. Chen Foundation" />
-      </div>
+  <!-- ============================================================
+       08 — FOOTER (V3)
+       ============================================================ -->
+  <footer class="footer-v3" id="footer">
+    <div class="wrap">
 
-      <div class="footer__col">
-        <nav class="footer__nav" aria-label="Footer navigation">
-          <a href="#" class="footer__nav-link">Partner with us</a>
-          <a href="#" class="footer__nav-link">Stay connected</a>
-          <a href="#" class="footer__nav-link">Join our team</a>
+      <div class="footer-v3__inner">
+
+        <a href="index.html" aria-label="D. H. Chen Foundation home">
+          <img src="assets/images/logo-footer-compassion.svg" alt="#Compassion in Action 慈之以行" class="footer-v3__logo" />
+        </a>
+
+        <div class="footer-v3__col">
+          <nav class="footer-v3__nav" aria-label="Footer navigation">
+            <a href="#">Partner with us</a>
+            <a href="#">Stay connected</a>
+            <a href="#">Join our team</a>
+          </nav>
+          <div class="footer-v3__social">
+            <a href="#" aria-label="LinkedIn">
+              <span class="footer-v3__social-icon footer-v3__social-icon--linkedin" aria-hidden="true"></span>
+            </a>
+            <a href="#" aria-label="Instagram">
+              <span class="footer-v3__social-icon footer-v3__social-icon--instagram" aria-hidden="true"></span>
+            </a>
+          </div>
+        </div>
+
+        <nav class="footer-v3__legal" aria-label="Legal navigation">
+          <a href="#">Privacy Policy</a>
+          <a href="#">Disclaimer</a>
+          <a href="#">Sitemap</a>
+          <a href="#">Accessibility</a>
         </nav>
 
-        <div class="footer__social">
-          <a href="#" class="footer__social-link" aria-label="LinkedIn">
-            <img src="assets/icons/icon-linkedin.svg" alt="LinkedIn" />
-          </a>
-          <a href="#" class="footer__social-link" aria-label="Instagram">
-            <img src="assets/icons/icon-instagram.svg" alt="Instagram" />
-          </a>
-        </div>
       </div>
 
-      <nav class="footer__legal-nav" aria-label="Legal navigation">
-        <a href="#" class="footer__legal-link">Privacy Policy</a>
-        <a href="#" class="footer__legal-link">Disclaimer</a>
-        <a href="#" class="footer__legal-link">Sitemap</a>
-        <a href="#" class="footer__legal-link">Accessibility</a>
-      </nav>
-
-    </div>
-
-    <div class="footer__copyright">
-      <p>
-        <span class="footer__copy-line">© 2026 The D. H. Chen Foundation. All rights reserved</span><span class="footer__copy-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><span class="footer__copy-line"><a href="https://www.assembly.com.hk" class="footer__credit" target="_blank" rel="noopener">Website designed by Assembly</a></span>
+      <p class="footer-v3__copyright">
+        © 2026 The D. H. Chen Foundation. All rights reserved<span class="footer-v3__copy-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><a href="https://www.assembly.com.hk" target="_blank" rel="noopener">Website designed by Assembly</a>
       </p>
-    </div>
 
+    </div>
   </footer>
 
   <!-- Full-screen search overlay (opened from the nav search icon) -->
@@ -460,6 +498,6 @@
   </div>
 
   <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
-  <script src="script.js?v=4.2"></script>
+  <script src="script.js?v=6.7"></script>
 </body>
 </html>

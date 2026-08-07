@@ -951,6 +951,10 @@ window.scrollTo(0, 0);
     if (el.closest('.listing__filters') || el.closest('.listing__crumb') ||
         el.closest('.news-v3__filters') ||
         el.closest('.nav__mobile-menu') ||
+        /* the article carousel's two arrows: their hover is the glyph going
+           orange, and a ring drawn around a bare arrow read as a second,
+           unrelated shape rather than as the button's own outline */
+        el.closest('.article__carousel-nav') ||
         el.closest('.search-overlay')) return;
     el.addEventListener('mouseenter', function () { engage(el); });
     el.addEventListener('mouseleave', release);
@@ -1149,26 +1153,122 @@ window.scrollTo(0, 0);
     ['.ventures__col', 0], ['.funding', 120],
     ['.footer-v3__logo', 0], ['.footer-v3__col', 120], ['.footer-v3__legal', 240],
 
-    /* inner-page (listing) — only present on Listing.html
-       (cards are NOT revealed here: the late trigger left lower rows blank
-       on load — they're shown immediately instead) */
-    ['.listing__title', 0], ['.listing__filters', 120]
+    /* inner pages — Listing.html / Articles.html.
+       Both used to arrive almost fully formed: the listing revealed only
+       its title and filter bar, and the article nothing at all below the
+       nav, so the pages read as static next to the home page's sections.
+       Everything down the page now rises in the same way.
+       The story cards take no delay here — theirs is worked out per grid
+       column when they land, see `columnOf`. */
+    ['.listing__crumb', 0], ['.listing__title', 100],
+    ['.listing__filters', 200], ['.story-card', 0], ['.listing__pager', 0],
+
+    /* no `.article__crumb` — the article's breadcrumb *is* a `.listing__crumb`
+       (it carries both classes) and is already covered above */
+    ['.article__title', 100],
+    ['.article__subtitle', 200], ['.article__tags', 300],
+    /* every block of the article in turn — copy, figures, the pull quote,
+       the video, the highlight panel, the testimonial. Taking the children
+       rather than naming each class means anything added to the article
+       later joins in without a code change. */
+    ['.article__main > *', 0],
+    /* the related rail is a single column, so each item simply rises as it
+       reaches the viewport — no in-group stagger to express */
+    ['.article__related-title', 0], ['.article__related-item', 0]
   ];
+
+  /* When a block is considered "in view".
+
+     The home page waits: `threshold: 0.2` with a 22% bottom inset holds a
+     section back until a fifth of it is a fair way up the window, which
+     suits a page built out of full-height sections.
+
+     It is the wrong rule for the inner pages. Their blocks are small and
+     numerous — a paragraph, a figure, a card — and some are taller than
+     the inset leaves room for, so demanding 20% of the element *and* the
+     top 78% of the window means a block only lifts once it is halfway up
+     the screen. It reads as arriving late.
+     `threshold: 0` starts a block the moment its top edge crosses the
+     line, and a 12% inset puts that line just above the fold. */
+  const OBS_OPTS = document.body.classList.contains('inner-v3')
+    ? { threshold: 0,   rootMargin: '0px 0px -12% 0px' }
+    : { threshold: 0.2, rootMargin: '0px 0px -22% 0px' };
 
   const targets = [];
   ITEMS.forEach(function (item) {
     document.querySelectorAll(item[0]).forEach(function (el) {
+      /* Hide it WITHOUT animating the hiding.
+         `.reveal` carries both `opacity: 0` and a 1.2s transition on
+         opacity — so adding the class does not just set the start state,
+         it starts a 1.2s fade *out* from the element's natural opacity 1.
+         The observer then adds `is-in` a few milliseconds later for
+         anything already on screen, which reverses that fade from ~1 back
+         to 1: the element never dips, so it never rises either, and the
+         top of the page arrives fully formed. Lower down the same fade-out
+         has to play through before the element can come back, which is
+         what made the rest look late.
+         `transitionProperty` (the longhand) is what gets suppressed here,
+         not the `transition` shorthand — the shorthand would also reset
+         the per-item delay set just below. */
+      el.style.transitionProperty = 'none';
       el.classList.add('reveal');
       if (item[1]) el.style.transitionDelay = item[1] + 'ms';
       targets.push(el);
     });
   });
+  /* Settle `opacity: 0` as the resolved style while transitions are still
+     off, then hand them back — now every reveal has a start value to
+     animate from, and no fade-out ever ran. */
+  void document.body.offsetHeight;
+  targets.forEach(function (el) { el.style.transitionProperty = ''; });
+  void document.body.offsetHeight;
+
+  /* Which column a card sits in, so each row ripples left to right.
+
+     It cannot be written as `:nth-child`: the story grid runs four columns
+     wide and re-flows to three, two and one, so "third in the row" is a
+     different card at every width. It also cannot be measured when this
+     file runs — the thumbnails carry no intrinsic size, so the grid has
+     not settled yet and every card still reads as its own row. So it is
+     worked out at the moment the card lands, when the images are in.
+
+     Columns, not rows, and `offsetLeft`, not `getBoundingClientRect()`:
+     an unlanded `.reveal` is translated down the page, so measuring tops finds
+     cards in the same row at different heights and splits the row in two.
+     Horizontal position has no such problem, and `offsetLeft` ignores
+     transforms outright. The distinct left edges are the columns — which
+     also gives a single-column phone the right answer, one column and
+     therefore no stagger at all. */
+  function columnOf(el) {
+    const lefts = [];
+    Array.prototype.forEach.call(el.parentElement.children, function (sib) {
+      const l = Math.round(sib.offsetLeft);
+      if (lefts.indexOf(l) === -1) lefts.push(l);
+    });
+    lefts.sort(function (a, b) { return a - b; });
+    return lefts.indexOf(Math.round(el.offsetLeft));
+  }
+
+  /* card to card across a row, and row to row — the second only applies to
+     the opening batch below, where two rows arrive at once */
+  const COL_STEP = 130;
+  const ROW_STEP = 240;
 
   function land(el) {
+    /* set before the class, so the transition starts with the delay already
+       on it — both land in the same style recalculation */
+    if (el.classList.contains('story-card')) {
+      const row = +(el.dataset.openRow || 0);
+      el.style.transitionDelay = (row * ROW_STEP + columnOf(el) * COL_STEP) + 'ms';
+    }
     el.classList.add('is-in');
     obs.unobserve(el);
-    /* clear the stagger delay once landed so later hovers stay snappy */
-    window.setTimeout(function () { el.style.transitionDelay = ''; }, 2000);
+    /* Clear the stagger delay once landed so later hovers stay snappy —
+       but only once the reveal itself is over. The longest is a fourth
+       column card on the inner pages: 3 × 170ms of stagger on top of a
+       1.5s rise, which overran the old 2000 and had its delay pulled out
+       from under it mid-transition. */
+    window.setTimeout(function () { el.style.transitionDelay = ''; }, 2600);
   }
 
   const obs = new IntersectionObserver(function (entries) {
@@ -1184,13 +1284,42 @@ window.scrollTo(0, 0);
         if (cta && !cta.classList.contains('is-in')) land(cta);
       }
     });
-  }, { threshold: 0.2, rootMargin: '0px 0px -22% 0px' });   /* fire later — well into view */
+  }, OBS_OPTS);
 
   targets.forEach(function (el) { obs.observe(el); });
 
-  /* Safety net: the observer fires 22% early (rootMargin), so elements that
-     settle in the bottom of the viewport at the page end — the footer columns
-     — would never trigger and stay hidden. Reveal any stragglers near the end. */
+  /* The opening, on the listing.
+     Left to the observer, only what is actually on screen comes in, which
+     at most window heights is the first row of cards and nothing else — so
+     the band under that row sat visibly empty while the header was still
+     arriving, and the page looked half-loaded. The first two rows are
+     brought in with the header instead, as one cascade that reads across
+     and then down; everything from the third row on stays with the
+     observer and lifts as it is scrolled to.
+     Rows come from `offsetTop`, which is layout and so is not disturbed by
+     the reveal's own translate, and which has settled by the time the
+     opening runs. `land()` unobserves each card, so nothing fires twice. */
+  const cards = Array.prototype.slice.call(document.querySelectorAll('.story-card'));
+  if (cards.length) {
+    const rows = [];
+    cards.forEach(function (c) {
+      const top = Math.round(c.offsetTop);
+      if (rows.indexOf(top) === -1) rows.push(top);
+    });
+    rows.sort(function (a, b) { return a - b; });
+    cards.forEach(function (c) {
+      const row = rows.indexOf(Math.round(c.offsetTop));
+      if (row < 2) {
+        c.dataset.openRow = row;
+        land(c);
+      }
+    });
+  }
+
+  /* Safety net: the observer holds a bottom inset (22% on the home page, 12%
+     on the inner pages), so elements that settle inside it at the page end —
+     the footer columns — would never trigger and stay hidden. Reveal any
+     stragglers near the end. */
   function flushAtBottom() {
     const atEnd = window.scrollY + window.innerHeight >=
                   document.documentElement.scrollHeight - 120;
@@ -2041,9 +2170,14 @@ window.scrollTo(0, 0);
       const holder = node.nodeType === 1 ? node : null;
       const walk = function (n, isAccent) {
         if (n.nodeType === 3) {
-          n.textContent.split(/(\s+)/).forEach(function (bit) {
+          /* split on *breaking* whitespace only: a non-breaking space in
+             the markup is there to tie two words together (the lone "a"
+             in "Building a compassionate", which must not be left hanging
+             at the end of a phone line), so it has to stay inside the
+             word span or this rebuild would quietly undo it. */
+          n.textContent.split(/([^\S\u00a0]+)/).forEach(function (bit) {
             if (!bit) return;
-            if (/^\s+$/.test(bit)) return void title.appendChild(document.createTextNode(' '));
+            if (/^[^\S\u00a0]+$/.test(bit)) return void title.appendChild(document.createTextNode(' '));
             const w = document.createElement('span');
             w.className = 'hw' + (isAccent ? ' hero-v3__accent' : '');
             w.textContent = bit;
@@ -2118,11 +2252,13 @@ window.scrollTo(0, 0);
         through at the centre of the frame: scattered dots gather into
         one, the one writes itself out into a line, the line multiplies
         into a plane, the plane fades
-     2. the founder's motto lifts in behind it — line, line, then the
-        attribution — holds, and fades. It is not typed: the graphic
-        has already carried the opening, and a typewriter after it read
-        as two openings stacked on each other
-     3. the seal fades up on its own, dead centre of the frame
+     2. the founder's motto lifts in behind it — line, line, the seal,
+        then the attribution. It is not typed: the graphic has already
+        carried the opening, and a typewriter after it read as two
+        openings stacked on each other
+     3. the whole plate holds, then the words fade off it — the seal is
+        part of the motto now (R2 12014:361), so it is already standing
+        in the right place and simply stays as the quote leaves
      4. it rises into the header — still just the seal, so nothing
         changes shape on the way up
      5. once home the seal slides left as the wordmark is uncovered,
@@ -2172,13 +2308,15 @@ window.scrollTo(0, 0);
     planeH: 500,   /* the finished plane holds                         */
     said:   480,   /* the plane fades (1.1s) — the words start into it */
     /* the motto */
-    hold1: 1900,   /* the finished motto sits — the longest pause in
-                      the sequence, so the words get read before the
-                      logo act takes over                              */
-    fade:   680,   /* motto fades out                                  */
-    gap:    220,
-    mark:   640,   /* the seal fades up                                */
-    hold2:  340,
+    markIn: 640,   /* into the motto's own cascade: both quote lines are
+                      home, the seal fades up in its slot beneath them,
+                      and the attribution follows it (CSS 0.86s delay)  */
+    hold1: 3400,   /* the finished plate sits — quote, seal and
+                      attribution together. The longest pause in the
+                      sequence by far: it is the one thing the visitor
+                      is meant to actually read                        */
+    fade:   680,   /* the words fade out — the seal stays lit          */
+    hold2:  420,   /* the seal alone, before it leaves                 */
     rise:   940,   /* the seal travels to the header                   */
     hold3:  260,
     open:   780,   /* wordmark uncovers, seal slides left              */
@@ -2188,7 +2326,8 @@ window.scrollTo(0, 0);
   };
 
   const QUOTE = ['Care for others as well as', 'you would care for yourself.'];
-  const CITE  = 'Dr. Din Hwa Chen (1923–2012)';
+  const CITE  = 'Dr. Din Hwa Chen';
+  const YEARS = '(1923–2012)';
 
   /* landing state: banner copy held back, menu held back, page locked.
      `lp-boot` (set inline in <head>) was covering the gap until now —
@@ -2222,26 +2361,6 @@ window.scrollTo(0, 0);
 
   if (reduce) return playLanding();
 
-  /* How far down the logo has to sit to be centred in the frame. Measured
-     before `data-intro` is set, i.e. while the logo is still untranslated.
-     Between 768 and 1800px the page carries `zoom: .9`, and a translate
-     written on a zoomed element is scaled with it — so divide it back out. */
-  function markY() {
-    if (!navLogo) return 0;
-    const zoom = parseFloat(window.getComputedStyle(body).zoom) || 1;
-    const r = navLogo.getBoundingClientRect();
-    return (window.innerHeight / 2 - (r.top + r.height / 2)) / zoom;
-  }
-
-  /* Order matters: `--mark-y` has to be in place *before* the stage rules
-     start applying. Changing a custom property that a transitioned
-     property reads through var() does not reliably re-run the transition
-     in Chrome — the computed value updates while the rendered one stays
-     put, which left the mark stranded near the top of the frame. Setting
-     it first means var() is only ever read at its final value. */
-  body.style.setProperty('--mark-y', markY().toFixed(2) + 'px');
-  body.setAttribute('data-intro', 'hidden');
-
   /* --- the overlay (JS-side so no-JS visitors never see it) -------- */
   const intro = document.createElement('div');
   intro.className = 'opening';
@@ -2257,9 +2376,19 @@ window.scrollTo(0, 0);
         QUOTE.map(function (l) {
           return '<span class="opening__line"><i>' + l + '</i></span>';
         }).join('') +
+        /* inside the quote, not beside it: it hangs off the end of the
+           last line, so it has to follow the text when it wraps */
+        '<img class="opening__qm" src="assets/icons/quote-mark.svg" alt="" />' +
       '</p>' +
-      '<p class="opening__cite"></p>' +
-      '<img class="opening__qm" src="assets/icons/quote-mark.svg" alt="" />' +
+      /* the seal's place in the plate. It is deliberately empty: the mark
+         that lands here is the real `.nav__logo`, parked over the slot —
+         see markY() below. The slot only has to hold the space open so
+         the attribution sits where the design puts it. */
+      '<span class="opening__markslot"></span>' +
+      '<p class="opening__cite">' +
+        '<span class="opening__cite-name"></span>' +
+        '<span class="opening__cite-years"></span>' +
+      '</p>' +
     '</div>';
   body.appendChild(intro);
 
@@ -2268,7 +2397,38 @@ window.scrollTo(0, 0);
   const dots   = intro.querySelector('.opening__dots');
   const dotrow = intro.querySelector('.opening__dotrow');
   const lines  = intro.querySelector('.opening__lines');
-  intro.querySelector('.opening__cite').textContent = CITE;
+  const slot   = intro.querySelector('.opening__markslot');
+  intro.querySelector('.opening__cite-name').textContent  = CITE;
+  intro.querySelector('.opening__cite-years').textContent = YEARS;
+
+  /* How far down the logo has to sit to land on its slot in the motto.
+     Measured against the slot rather than the middle of the frame, so the
+     seal is always exactly where the design draws it — under the second
+     line of the quote, over the attribution — at every breakpoint.
+     Between 768 and 1800px the page carries `zoom: .9`, and a translate
+     written on a zoomed element is scaled with it — so divide it back out.
+     The current offset is added back in because on a resize the logo is
+     already translated, i.e. the two rects differ by what is *left* to
+     move, not by the whole distance. */
+  function markY() {
+    if (!navLogo || !slot) return 0;
+    const zoom = parseFloat(window.getComputedStyle(body).zoom) || 1;
+    const now  = parseFloat(body.style.getPropertyValue('--mark-y')) || 0;
+    const r = navLogo.getBoundingClientRect();
+    const s = slot.getBoundingClientRect();
+    return now + ((s.top + s.height / 2) - (r.top + r.height / 2)) / zoom;
+  }
+
+  /* Order matters: `--mark-y` has to be in place *before* the stage rules
+     start applying. Changing a custom property that a transitioned
+     property reads through var() does not reliably re-run the transition
+     in Chrome — the computed value updates while the rendered one stays
+     put, which left the mark stranded near the top of the frame. Setting
+     it first means var() is only ever read at its final value.
+     Nothing has been painted yet — this is still the same task that swapped
+     `lp-boot` out — so the logo is never seen sitting in the header. */
+  body.style.setProperty('--mark-y', markY().toFixed(2) + 'px');
+  body.setAttribute('data-intro', 'hidden');
 
   /* the quote lines lift one behind the other */
   intro.querySelectorAll('.opening__line > i').forEach(function (el, n) {
@@ -2373,9 +2533,9 @@ window.scrollTo(0, 0);
   const tPlane  = tFuse + T.fuse;
   const tOut    = tPlane + T.plane + T.planeH;
   const tSaid   = tOut + T.said;
+  const tMark   = tSaid + T.markIn;
   const tFade   = tSaid + T.hold1;
-  const tMark   = tFade + T.fade + T.gap;
-  const tRise   = tMark + T.mark + T.hold2;
+  const tRise   = tFade + T.fade + T.hold2;
   const tOpen   = tRise + T.rise + T.hold3;
 
   at(tLit,    function () { dots.classList.add('is-lit'); });
@@ -2391,8 +2551,12 @@ window.scrollTo(0, 0);
   at(tOut,    function () { stage.classList.add('opening__stage--out'); });
   at(tSaid,   function () { intro.classList.add('opening--said'); });
 
-  at(tFade, function () { motto.classList.add('opening__motto--out'); });
+  /* the seal fades up inside the motto, on the beat between the second
+     quote line and the attribution */
   at(tMark, function () { body.setAttribute('data-intro', 'centre'); });
+  /* only the words go — the seal is not in the overlay, so it is left
+     standing on the empty peach panel, already where it needs to be */
+  at(tFade, function () { motto.classList.add('opening__motto--out'); });
   at(tRise, function () {
     body.setAttribute('data-intro', 'up');
     /* the peach panel clears behind the rising mark, so the banner is
@@ -2414,5 +2578,73 @@ window.scrollTo(0, 0);
         body.getAttribute('data-intro') === 'hidden') {
       body.style.setProperty('--mark-y', markY().toFixed(2) + 'px');
     }
+  });
+})();
+
+
+/* ----------------------------------------------------------------
+   14. Article image carousel
+   The figure ships as a plain stack of <img>, first one visible, and
+   this turns it into a slider: the arrows step through, the count in
+   the caption row reads off the number of slides, and each slide's
+   own `data-caption` replaces the text as it comes up.
+
+   Everything is derived from the markup — the total is not written
+   anywhere in the HTML — so adding a picture is one <img> and nothing
+   else. With one slide the arrows disable themselves; with none, or
+   with no script at all, the figure is just a picture.
+   ---------------------------------------------------------------- */
+(function () {
+  const figures = Array.prototype.slice.call(
+    document.querySelectorAll('[data-carousel]'));
+  if (!figures.length) return;
+
+  figures.forEach(function (fig) {
+    const media  = fig.querySelector('.article__figure-media');
+    const slides = media
+      ? Array.prototype.slice.call(media.querySelectorAll('img'))
+      : [];
+    if (slides.length < 2) {
+      /* one picture: leave it exactly as the markup has it and take the
+         arrows out of the tab order rather than leaving them dead */
+      fig.querySelectorAll('.article__carousel-arrow')
+         .forEach(function (b) { b.disabled = true; });
+      const only = fig.querySelector('[data-carousel-total]');
+      if (only) only.textContent = String(slides.length || 1);
+      return;
+    }
+
+    const caption = fig.querySelector('.article__caption');
+    const cur     = fig.querySelector('[data-carousel-current]');
+    const total   = fig.querySelector('[data-carousel-total]');
+    const prev    = fig.querySelector('.article__carousel-arrow--prev');
+    const next    = fig.querySelector('.article__carousel-arrow--next');
+    let i = 0;
+
+    /* `is-ready` hands the stacking over to the script's own rule, which
+       adds the crossfade. Until this runs the CSS keeps slide one visible
+       on its own, so there is no frame where the figure is empty. */
+    slides[0].classList.add('is-on');
+    media.classList.add('is-ready');
+    if (total) total.textContent = String(slides.length);
+
+    function show(n) {
+      i = (n + slides.length) % slides.length;
+      slides.forEach(function (s, k) { s.classList.toggle('is-on', k === i); });
+      if (cur) cur.textContent = String(i + 1);
+      const c = slides[i].getAttribute('data-caption');
+      if (caption && c !== null) caption.textContent = c;
+    }
+
+    if (prev) prev.addEventListener('click', function () { show(i - 1); });
+    if (next) next.addEventListener('click', function () { show(i + 1); });
+
+    /* left/right arrow keys once one of the buttons has focus */
+    fig.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowLeft')  { show(i - 1); }
+      if (e.key === 'ArrowRight') { show(i + 1); }
+    });
+
+    show(0);
   });
 })();

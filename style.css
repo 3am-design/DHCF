@@ -543,16 +543,25 @@ body.lp-nav .nav__actions { opacity: 0; translate: 0 -18px; }
   object-fit: contain;
 }
 
-/* Mobile menu — full-screen orange overlay (mobile only) */
+/* Mobile menu — full-screen white overlay (mobile only).
+   Everything that is not the section headings reads in the footer's
+   #808080 rather than black: 中文, the search glyph, the close X, the
+   sub-links, the secondary links and the social icons. The two icon sets
+   are masks of a pure-black source, so `invert(50%)` maps them to exactly
+   that grey. `--c-grey` carries a literal fallback because the inner pages
+   load style.css on its own, without the home stylesheet that defines it. */
 .nav__mobile-menu {
   display: flex;
   position: fixed;
   inset: 0;
   z-index: 200;                 /* above the fixed nav (100) */
   background: var(--c-white);
-  color: var(--c-black);
+  color: var(--c-grey, #808080);   /* footer grey, not black */
   flex-direction: column;
-  padding: 0 var(--gm-mob) calc(env(safe-area-inset-bottom) + 28px);
+  /* 56, twice the 28 it used to sit on: the social row was landing too
+     close to the bottom edge of the screen. `env()` is still added on top,
+     so on a notched phone the home indicator is cleared as well. */
+  padding: 0 var(--gm-mob) calc(env(safe-area-inset-bottom) + 56px);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   /* circular reveal radiating from the hamburger (JS sets --reveal-x/y) */
@@ -578,7 +587,7 @@ body.lp-nav .nav__actions { opacity: 0; translate: 0 -18px; }
   font-family: var(--f-sans);
   font-size: 16px;
   font-weight: 400;
-  color: var(--c-black);
+  color: var(--c-grey, #808080);   /* footer grey, not black */
 }
 .nav__mobile-bar-actions { display: flex; align-items: center; gap: 14px; }
 .nav__mobile-search {
@@ -587,7 +596,7 @@ body.lp-nav .nav__actions { opacity: 0; translate: 0 -18px; }
 }
 .nav__mobile-search img {
   width: 21px; height: 21px; object-fit: contain;
-  filter: brightness(0);             /* icon → black */
+  filter: invert(50%);               /* icon → #808080 */
 }
 /* X close — two crossed bars */
 .nav__mobile-close {
@@ -599,7 +608,7 @@ body.lp-nav .nav__actions { opacity: 0; translate: 0 -18px; }
   position: absolute;
   left: 50%; top: 50%;
   width: 22px; height: 1.5px;     /* same X as the search overlay close */
-  background: var(--c-black);
+  background: var(--c-grey, #808080);
 }
 .nav__mobile-close span:first-child { transform: translate(-50%, -50%) rotate(45deg); }
 .nav__mobile-close span:last-child  { transform: translate(-50%, -50%) rotate(-45deg); }
@@ -653,7 +662,7 @@ button.nav__mobile-link {
 .nav__mobile-sub a {
   font-family: var(--f-sans);
   font-size: 18px;
-  color: var(--c-black);
+  color: var(--c-grey, #808080);   /* footer grey, not black */
   /* underline draws in on hover (no cursor frame, no colour fade) */
   padding-bottom: 2px;
   background: linear-gradient(currentColor, currentColor) no-repeat 0 100% / 0% 1px;
@@ -683,17 +692,30 @@ button.nav__mobile-link {
   margin-top: auto;            /* push to the lower part of the screen */
   padding-top: 48px;
 }
+/* These are the footer's two link columns, so they keep the footer's
+   rhythm: a 22px line box, and the four legal links spelling out the same
+   height as the three on the left —
+     3 × 22 + 2 × 22  =  4 × 22 + 3 × (22 / 3)  =  110
+   Without it the right column simply ran a row longer than the left. */
 .nav__mobile-col {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 14px;
+  gap: 22px;
 }
+.nav__mobile-col + .nav__mobile-col {
+  gap: calc(22px / 3);
+  align-self: start;
+}
+/* the legal column is the footer's small type too — 13 against the 16 on
+   the left, in the same 22px line box so the two columns still align */
+.nav__mobile-col + .nav__mobile-col .nav__mobile-sublink { font-size: 13px; }
 .nav__mobile-sublink {
   font-family: var(--f-sans);
   font-size: 16px;
+  line-height: 22px;
   font-weight: 400;
-  color: var(--c-black);
+  color: var(--c-grey, #808080);   /* footer grey, not black */
 }
 
 .nav__mobile-social {
@@ -703,7 +725,7 @@ button.nav__mobile-link {
 }
 .nav__mobile-social-link img {
   width: 26px; height: 26px; object-fit: contain;
-  filter: brightness(0);             /* icon → black */
+  filter: invert(50%);               /* icon → #808080 */
 }
 
 
@@ -855,16 +877,44 @@ body.home-v3 .search-overlay__close span { width: 22px; }
 }
 .search-overlay__hot a:hover { background-size: 100% 1px; }
 
-@media (max-width: 700px) {
+/* 767, not 700: the nav switches to its mobile layout at 767, and the bar
+   here is a copy of it. The 67px window between the two left the overlay
+   wearing its desktop bar over a phone nav. */
+@media (max-width: 767px) {
   .search-overlay__bar { height: 78px; padding: 0 var(--gm-mob); }   /* matches mobile nav */
-  .search-overlay__close { width: 40px; height: 40px; border: none; }   /* mobile: just the X, no ring */
-  .search-overlay__close:hover { background: none; }                    /* keep the X-only look */
-  .search-overlay__close:hover span { background: var(--c-white); }
+  /* The close keeps its desktop ring on a phone too — the X on its own
+     read as an unfinished button next to the ringed one everywhere else. */
   .search-overlay__field { gap: 12px; }
   .search-overlay__icon { width: 24px; height: 24px; }
   .search-overlay__input { font-size: 28px; }
   .search-overlay__hot { gap: 12px 24px; }
   .search-overlay__hot a { font-size: 17px; }
+
+  /* V3 home: the phone nav is a plain 72px bar with the lockup centred in
+     it — not the desktop's top-padded one — so the overlay bar follows it
+     here instead, or the logo drops 17px as the wipe passes over it. Same
+     height, same centring, same margins, so the lockup lands on the exact
+     pixel it already occupies (it is already the nav's own `--logo-h`).
+     The close then centres in that bar too, which puts its ring
+     concentric with the search button it opened from. */
+  body.home-v3 .search-overlay__bar {
+    height: 72px;
+    align-items: center;
+    padding: 0 var(--gm-mob);
+  }
+  /* Same ring as the desktop close, sized for the phone: 67.6px is the
+     width of the hover disc on a 40px desktop button, and centring that
+     on the phone's own button would hang it 6px off the left edge and
+     2px off the top of the bar. 48px keeps the ring clear of both, with
+     its left edge on the page margin, and the X scales with it (the
+     desktop ratio is 22 / 67.6). */
+  body.home-v3 .search-overlay__close {
+    align-self: center;
+    width: 48px;
+    height: 48px;
+    margin: 0;
+  }
+  body.home-v3 .search-overlay__close span { width: 16px; }
 }
 
 
@@ -2854,8 +2904,30 @@ body.home-v3 .search-overlay__close span { width: 22px; }
   aspect-ratio: 890 / 462;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.05);
+  /* the slides stack on this box rather than following each other, so the
+     figure keeps its height no matter how many there are */
+  position: relative;
 }
 .article__figure-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Every slide but the first is stacked on top and held at zero opacity;
+   the script moves `is-on` along them. Written so that WITHOUT the script
+   (or before it runs) the first image is the one that shows — no blank
+   frame, and no-JS visitors still get the picture the caption describes. */
+.article__figure-media img + img {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+.article__figure-media img.is-on { opacity: 1; }
+.article__figure-media.is-ready img {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.article__figure-media.is-ready img.is-on { opacity: 1; }
+/* the arrows are inert until there is more than one slide to move between */
+.article__carousel-arrow[disabled] { opacity: 0.35; pointer-events: none; }
 .article__figcaption {
   display: flex;
   justify-content: space-between;
@@ -2867,13 +2939,17 @@ body.home-v3 .search-overlay__close span { width: 22px; }
   font-family: var(--f-sans);
   font-weight: 400;
   font-size: 16px;
-  color: var(--c-black);
+  color: var(--c-grey, #808080);
 }
 .article__carousel-nav { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+/* The nav reads in the same #808080 as the rest of the page's secondary
+   type, not black — the count, the two arrows, and the caption beside them.
+   (`--c-grey` is declared in style-home.css, so the literal is carried as a
+   fallback for any page that loads style.css on its own.) */
 .article__carousel-count {
   font-family: var(--f-sans);
   font-size: 14px;
-  color: var(--c-black);
+  color: var(--c-grey, #808080);
   min-width: 34px;
   text-align: center;
 }
@@ -2884,10 +2960,12 @@ body.home-v3 .search-overlay__close span { width: 22px; }
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--c-black);
+  color: var(--c-grey, #808080);
   transition: transform var(--ease), color var(--ease);
 }
 .article__carousel-arrow svg { width: 20px; height: 12px; display: block; }
+/* the whole hover: the glyph goes brand orange. The cursor stays the plain
+   travelling dot over these — script §8's magnet skips `.article__carousel-nav`. */
 .article__carousel-arrow:hover { color: var(--c-orange); }
 .article__carousel-arrow--prev:hover { transform: translateX(-2px); }
 .article__carousel-arrow--next:hover { transform: translateX(2px); }
@@ -2902,7 +2980,11 @@ body.home-v3 .search-overlay__close span { width: 22px; }
   font-family: var(--f-serif);
   font-size: 50px;
   font-weight: 400;
-  line-height: 60px;
+  /* A RATIO, not the design's 60px. 50 × 1.2 is exactly that 60, so the
+     desktop is unchanged — but the breakpoints below only ever restated
+     the font size, so a fixed 60px stayed put while the type shrank and
+     the quote ended up on a 2.2 line. Now the leading follows the size. */
+  line-height: 1.2;
   color: var(--c-orange);
 }
 .article__quote-mark {
@@ -3181,13 +3263,39 @@ body.home-v3 .search-overlay__close span { width: 22px; }
   .article__crumb { margin-bottom: 24px; }
   .article__title { font-size: 38px; }
   .article__section-title { font-size: 30px; }
-  .article__quote { padding-right: 50px; margin: 44px 0; }
-  .article__quote p { font-size: 27px; }
-  .article__quote-mark { font-size: 90px; top: 20px; }
+  /* The mark is 105px wide at full size and sits at `right: 0`, so the
+     padding has to clear it or it prints over the end of the lines — the
+     old 50px cleared less than half of it. Scaled down to 54 here, with
+     64 of padding to keep the glyph and the words apart the way the design
+     draws them. `font-size` was being set on an <img>, which did nothing. */
+  .article__quote { padding-right: 64px; margin: 44px 0; }
+  .article__quote p { font-size: 32px; }
+  .article__quote-mark { width: 54px; height: auto; top: 6px; }
   .article__duo { grid-template-columns: 1fr; gap: 16px; }
   .article__highlight { padding: 34px 28px 38px; }
-  .article__highlight p { font-size: 16px; }
+  /* On a phone the orange panel reads as body copy, so it is set as body
+     copy — the same 16/25 and the same 300 as `.article__text` right below
+     it. It was only being given the size: the desktop `line-height: 30px`
+     stayed behind on the smaller type and opened it out to a 1.9 leading
+     against the running text's 1.56, which is what made the panel look
+     like a different, looser typeface. */
+  .article__highlight p {
+    font-size: 16px;
+    line-height: 25px;
+    font-weight: 300;
+  }
   .article__testimonial { padding: 34px 28px 38px; }
+  /* Same as the orange panel above: on a phone the testimonial is running
+     text, so it is set as running text — 16/25 weight 300, exactly
+     `.article__text`. (Its 20/30 was at least a consistent 1.5; it was
+     simply too large next to the body copy on a narrow column.) */
+  .article__testimonial-quote {
+    font-size: 16px;
+    line-height: 25px;
+  }
+  /* The name comes down to the body size too but keeps its weight, so it
+     still reads as the attribution rather than more copy. */
+  .article__testimonial-name { font-size: 16px; }
   .article__btn-row { gap: 16px 28px; }
   .article__play { width: 62px; height: 62px; left: 18px; bottom: 18px; }
   .article__play::before {

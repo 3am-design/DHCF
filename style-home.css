@@ -21,6 +21,32 @@
   --t-heading:  clamp(34px, 4.17vw, 80px);   /* Figma 80 / 90 */
   --panel-pad-x: clamp(24px, 5.5vw, 105px);  /* text inset inside a panel */
   --c-grey:     #808080;                     /* R2 body/heading grey */
+
+  /* ── The grid ────────────────────────────────────────────────────
+     Read back off R2 rather than invented: 1820 of content inside 50px
+     margins, twelve columns, 46px gutters. Everything in the design
+     lands on it —
+       news card      3 col  (3×109.5 + 2×46 = 420.5, drawn 420)
+       ventures copy  4 col  (576, drawn 577) and the right-hand
+                             column opens on column 7 (933, drawn 935)
+       funding photo  8 col  (1198, drawn 1200) starting column 5
+       hero copy      4 col  (drawn 577)
+     iPad drops to six columns and phones to four; every responsive rule
+     below is written in `--col`, so the same modules keep landing on
+     column edges instead of on hand-picked percentages. */
+  --grid-cols: 12;
+  /* The gutter is not a step per breakpoint — it narrows with the window
+     the whole way down, so a six- or four-column grid never carries a
+     desktop-sized trench between its columns. 2.4vw hits the design's
+     46px exactly at 1920 and bottoms out at 16 on a phone. */
+  --grid-gap: clamp(16px, 2.4vw, 46px);
+  --col: calc((100% - (var(--grid-cols) - 1) * var(--grid-gap)) / var(--grid-cols));
+  /* spans, for the tracks used often enough to be worth naming. NB these
+     resolve against whatever box uses them, so they are only true on a
+     direct child of `.wrap` — the panels' interiors are inset by their
+     own padding and use plain percentages instead. */
+  --col3: calc(3 * var(--col) + 2 * var(--grid-gap));
+  --col4: calc(4 * var(--col) + 3 * var(--grid-gap));
 }
 
 /* The intro, the mobile menu and the search overlay all lock the page with
@@ -94,9 +120,17 @@ body.home-v3 {
           brightness(100%) contrast(100%);
 }
 
-/* the seal only ever shows inside the sticky pill */
+/* the seal only ever shows inside the sticky bar */
 .nav__seal { display: none; }
 .nav__seal img { width: 26px; height: 39.4px; display: block; }
+
+/* Declared outside the breakpoints on purpose: keyframes inside a media
+   query only exist while that query matches, and both the desktop pill
+   and the phone bar animate with this one. */
+@keyframes nav-pill-in {
+  from { opacity: 0; translate: 0 -26px; }
+  to   { opacity: 1; translate: 0 0; }
+}
 
 /* Sticky bar (Figma R2 "stick", node 12014-44): the whole nav collapses
    into a single white 180 × 61 pill on the right — seal · search ·
@@ -108,6 +142,20 @@ body.home-v3 {
   /* Until it sticks the bar is part of the page, so it scrolls up and out
      of frame like any other content instead of vanishing in place. */
   .nav--v3 { position: absolute; }
+
+  /* …and that is exactly why the opening needs a nudge here and nowhere
+     else. The intro locks the page, and `html.lock-scroll` hands the
+     scrollbar's width back as padding — which moves an *absolute* nav
+     (and with it the seal that lands in the middle of the motto) half a
+     scrollbar to the left, while the `fixed` overlay stays centred on
+     the window. Below 768 the nav is fixed too, so both agree already
+     and applying this would push the words off centre instead.
+     Zero wherever scrollbars are overlays, which is why it only ever
+     shows up on some machines. */
+  .opening {
+    --x-mid: calc(50% - var(--sbw, 0px) / 2);
+    --x-inset: var(--sbw, 0px);
+  }
   .nav--v3.nav--scrolled { position: fixed; background: transparent; box-shadow: none; }
   .nav--v3.nav--scrolled .nav__inner {
     height: 92.8px;
@@ -132,10 +180,6 @@ body.home-v3 {
     background: var(--c-white);
     /* drops in from above, a beat after the bar has scrolled off */
     animation: nav-pill-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.14s both;
-  }
-  @keyframes nav-pill-in {
-    from { opacity: 0; translate: 0 -26px; }
-    to   { opacity: 1; translate: 0 0; }
   }
   @media (prefers-reduced-motion: reduce) {
     .nav--v3.nav--scrolled .nav__actions { animation: none; }
@@ -199,7 +243,19 @@ body.home-v3 {
 .nav--v3 .nav__mega {
   top: 0;
   left: auto;
-  right: 0;
+  /* Not `right: 0`. `.nav` runs the full width of the window, but everything
+     it holds is inside `.nav__inner`, which is capped at 1920 and centred —
+     so past 1920 the bar's contents stop short of the window edge while the
+     card kept going to it. At 2200 that put the card 132px to the right of
+     the menu, and since the sub-links are placed from the card's own right
+     edge, they drifted right along with it and printed on top of the four
+     section links.
+     `--nav-overhang` is exactly that gap: half of whatever the window has
+     over 1920, and zero below it, so the card's right edge lands on the
+     content box's right edge at every width. It resolves against `.nav`,
+     which is this card's containing block. */
+  --nav-overhang: max(0px, calc((100% - 1920px) / 2));
+  right: var(--nav-overhang);
   width: 530px;
   height: 724px;
   background: var(--c-white);
@@ -318,7 +374,10 @@ body.home-v3 {
 @media (min-width: 768px) {
   .nav--v3.nav--scrolled .nav__mega {
     top: 104px;
-    right: var(--gm);
+    /* the page margin in from the content box's right edge, not the
+       window's — same correction as the unstuck card above, and what keeps
+       the card under the pill (which is inside the 1920 box) past 1920 */
+    right: calc(var(--gm) + var(--nav-overhang));
   }
   .nav--v3.nav--scrolled .nav__mega-menu { display: flex; }
   /* `.nav`'s box is only as tall as `.nav__inner` (92.8px), and the card
@@ -429,7 +488,10 @@ body.lp-h1 .hero-v3__title.is-split { opacity: 1; translate: none; }
   font-size: 18px;
   line-height: 30px;
   color: var(--c-grey);
-  max-width: 577px;
+  /* four columns, like the ventures and funding copy — Figma's 577 is the
+     same track. Stated in `--col` so it narrows with the grid rather than
+     holding 577 against a 1280 window (where four columns are only 420). */
+  max-width: var(--col4);
 }
 .hero-v3__mark { width: clamp(180px, 14vw, 270px); height: auto; }
 
@@ -472,19 +534,24 @@ html.lp-boot .colourbar--hero { clip-path: inset(0 100% 0 0); }
    01b — LANDING OPENING (script §13)
    NB: namespaced `.opening`, not `.intro` — style.css already owns a
    legacy `.intro` section whose gradient would paint straight onto it.
-   點 · 線 · 面 plays through → the motto lifts in → fades → seal
-   appears → seal slides left as the wordmark opens → the finished
-   lockup rises into the header.
-   Figma R2: OPT1_01_Home_00_01 / _00_04 / _00_05, all 1920 × 1000.
+   點 · 線 · 面 plays through → the motto lifts in, seal and all →
+   the words fade off it, leaving the seal → the seal rises into the
+   header → it slides left as the wordmark opens.
+   Figma R2: OPT1_01_Home_00_01 / 10067:1131 / _00_05, all 1920 × 1000.
    ================================================================ */
 /* `body.has-custom-cursor` sets `cursor: none`, and the overlay sits above
    the dot's own z-index (9999) — so without this the intro would show no
    pointer at all. Keep the dot on top for the whole sequence. */
 body.home-v3 .cursor { z-index: 100001; }
 
+/* `--x-mid` is the centre line everything in the opening is hung off.
+   Plain 50% here: the overlay is `fixed` and so is the nav on a phone,
+   so both are centred on the window and they agree. The desktop case is
+   different and corrects itself below. */
 .opening {
   position: fixed;
   inset: 0;
+  --x-mid: 50%;
   z-index: 100000;
   background-color: var(--c-bg);
   /* it swallows the pointer: nothing behind the peach panel can be
@@ -523,7 +590,7 @@ body.home-v3.lp-nav .nav * { pointer-events: none; }
    ---------------------------------------------------------------- */
 .opening__stage {
   position: absolute;
-  left: 50%;
+  left: var(--x-mid, 50%);
   top: 50%;
   /* height 0: the three graphics are all absolutely placed and centre
      themselves on this one point, so the box only has to mark the spot */
@@ -641,20 +708,47 @@ body.home-v3.lp-nav .nav * { pointer-events: none; }
 }
 
 /* ── act two: the motto ─────────────────────────────────────────── */
-/* it sits dead centre of the frame, as it does in the design */
+/* R2 10067:1131 — quote, seal, name, dates, one centred plate. The seal
+   in the middle of it is the real nav logo, parked over `.opening__markslot`
+   (script §13), so this block owns the *space* for it but not the artwork.
+   Figma centres the plate a touch below the middle of the 1920 × 1000
+   frame (its ink runs 373 → ~702, i.e. ~41px low), which is what the vh
+   nudge is; everything else here is measured off that frame. */
 .opening__motto {
   position: absolute;
-  left: 50%;
+  /* Centred by auto margins across the full frame, NOT by `left: 50%` —
+     a shrink-to-fit box offset from the left has only the space between
+     that offset and the right edge to lay out in, so `left: 50%` would
+     cap the plate at half the window and wrap the lines on a phone.
+     `--x-inset` is the same scrollbar correction as `--x-mid`. */
+  left: 0;
+  right: var(--x-inset, 0px);
+  margin-inline: auto;
   top: 50%;
-  translate: -50% -50%;
-  width: min(664px, calc(100vw - 2 * var(--gm)));
+  translate: 0 calc(-50% + 4vh);
+  /* The plate is as wide as its longest line, not a fixed 664. At 1920
+     the two lines measure the design's 664 anyway, but the type is
+     clamped down on smaller screens while a fixed box would not follow —
+     and the quote mark hangs off the box's right edge, so it would drift
+     further and further from the words as they shrank. `fit-content`
+     keeps the edge on the text. The max is the design width, and the
+     lower bound is the margin, for the widths where the lines wrap. */
+  width: fit-content;
+  max-width: min(664px, calc(100vw - 2 * var(--gm)));
+  /* every line of the plate is centred on the seal, including the short
+     first line of the quote */
+  text-align: center;
+  /* the quote's size drives the plate: the quote mark hangs off it, and
+     both are 1:1 with the design at 1920 */
+  --q-size: clamp(30px, 3.13vw, 60px);
   transition: opacity 0.68s ease;
 }
 .opening__motto--out { opacity: 0; }
 .opening__quote {
+  position: relative;   /* the quote mark hangs off its bottom-right */
   font-family: var(--f-serif);
   font-weight: 400;
-  font-size: clamp(30px, 3.13vw, 60px);
+  font-size: var(--q-size);
   line-height: 1;
   color: var(--c-orange);
   /* sized for the finished two lines so nothing reflows as they arrive */
@@ -680,35 +774,86 @@ body.home-v3.lp-nav .nav * { pointer-events: none; }
               opacity 0.7s ease var(--dl, 0ms);
 }
 .opening--said .opening__line > i { translate: 0 0; opacity: 1; }
+
+/* The seal's place in the plate — an empty box the height of the nav
+   logo, which is exactly what lands on it (the mark is 48.81 × 74 in the
+   design, i.e. the lockup's own height and its left 22.6%). Held open in
+   the flow so the attribution below is pushed down by the real thing's
+   size at every breakpoint, and so the mark can be parked by measurement
+   rather than by a magic number. */
+.opening__markslot {
+  display: block;
+  width: calc(var(--logo-h) * 0.66);
+  height: var(--logo-h);
+  margin: clamp(32px, 3.44vw, 66px) auto 0;
+}
+
 .opening__cite {
   font-family: var(--f-serif);
-  font-size: clamp(14px, 0.94vw, 18px);
-  line-height: 60px;
   color: var(--c-orange);
-  margin-top: 48px;
-  /* the third and last thing to lift, once both quote lines are home */
+  /* the design's 60px line boxes, read back as the ink they actually
+     put on the frame: name centred on y 665, dates on y 694 */
+  margin-top: clamp(12px, 1.04vw, 20px);
+  /* the last thing to lift, once both quote lines and the seal are home */
   translate: 0 18px;
   opacity: 0;
-  transition: translate 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.46s,
-              opacity 0.6s ease 0.46s;
+  transition: translate 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.86s,
+              opacity 0.6s ease 0.86s;
 }
+.opening__cite-name {
+  display: block;
+  font-size: clamp(16px, 1.25vw, 24px);
+  line-height: 1;
+}
+.opening__cite-years {
+  display: block;
+  font-size: clamp(12px, 0.83vw, 16px);
+  font-weight: 600;
+  line-height: 1;
+  margin-top: clamp(6px, 0.47vw, 9px);
+}
+/* It tucks in under the end of the last line and just past it — R2 draws
+   it at 1307,492 in the 1920 frame, i.e. a quarter of a quote-em clear of
+   the block's right edge and level with the bottom of the text. Anchored
+   to the quote rather than the plate so it follows the last line down
+   when the words wrap on a narrow viewport.
+   The artwork is already 20%-opacity orange (quote-mark.svg), which is
+   the design's tint exactly — so this only fades 0 → 1, and must not
+   dim it a second time. */
 .opening__qm {
   position: absolute;
-  left: 94%;
-  top: 62.5%;
+  left: calc(100% + 0.25 * var(--q-size));
+  top: calc(100% - 0.16 * var(--q-size));
   width: clamp(52px, 5.48vw, 105px);
   height: auto;
+  /* R2 rotates this node 180°, and an export only ever carries the path —
+     so the file on disk is the opening quote and the design draws the
+     closing one. (The same transform is why the node reports x 1412 while
+     it paints from 1307: Figma gives the pre-rotation origin.) A half
+     turn is symmetric about the centre, so the box does not move. */
+  rotate: 180deg;
   opacity: 0;
   transition: opacity 0.6s ease 0.3s;
 }
+/* under ~800px the plate is as wide as the viewport lets it be, and even
+   that quarter-em would run off the right edge — so the mark sits inside
+   the block instead, still tight to the end of the last line */
+@media (max-width: 799px) {
+  .opening__qm {
+    left: calc(100% - 1.2 * var(--q-size));
+    /* tucked under the last line rather than beside it: at this size the
+       words fill the plate, so the only clear air is below the baseline */
+    top: calc(100% + 0.1 * var(--q-size));
+  }
+}
 .opening--said .opening__cite { translate: 0 0; opacity: 1; }
-.opening--said .opening__qm   { opacity: 0.32; }
+.opening--said .opening__qm   { opacity: 1; }
 
 /* ── acts two and three: the nav logo performs them itself ───────
    There is no second copy of the lockup and therefore nothing to hand
    over: the real `.nav__logo` is lifted above the peach panel, clipped
-   down to its mark, parked at the centre of the frame, and then walked
-   back home. When the intro ends the attribute is simply dropped and
+   down to its mark, parked on the motto's own seal slot — so the mark in
+   the design's quote plate *is* the nav logo — and then walked back home. When the intro ends the attribute is simply dropped and
    every override resolves to the logo's natural state — same rect, same
    raster, nothing to flash.
 
@@ -769,15 +914,31 @@ body.home-v3[data-intro='open'] .nav__logo {
   flex-direction: column;
   gap: 16px;
 }
+/* A panel is its own six columns: copy on the left three, the 點·線·面
+   graphic on the right three. `container-type` is what makes that
+   sayable — `cqw` is a percentage of the panel's *content* box, so the
+   same expression means the same width whether it is read by a child in
+   the flow (copy) or by an absolutely positioned one (the graphics,
+   whose own percentages would otherwise resolve against the padding box
+   and land half a padding out). */
 .panel {
   position: relative;
+  container-type: inline-size;
   overflow: hidden;
   background: var(--c-white);
   min-height: 800px;
   padding: 61px var(--panel-pad-x) 73px;
   display: flex;
   flex-direction: column;
+  /* the left (or right) three of the panel's six columns */
+  --p-half: calc((100cqw - var(--grid-gap)) / 2);
 }
+/* The copy stops on the column edge at every width. The design's own
+   caps (736 / 659 / 640 …) stay in play wherever they are the smaller of
+   the two — at 1920 they all are, so the desktop is unchanged; it is the
+   widths in between that were letting a fixed 736px of text run out over
+   the graphic. */
+.panel__body { max-width: min(736px, var(--p-half)); }
 .panel--bettering { background: var(--c-orange); }
 
 .panel__eyebrow {
@@ -796,10 +957,10 @@ body.home-v3[data-intro='open'] .nav__logo {
   color: var(--c-orange);
   margin-top: clamp(4px, 0.8vw, 14px);
 }
-/* everything below the title is bottom-anchored, as in the design */
+/* everything below the title is bottom-anchored, as in the design.
+   (max-width is set with the panel's columns, above.) */
 .panel__body {
   margin-top: auto;
-  max-width: 736px;
   position: relative;
   z-index: 2;
 }
@@ -1060,11 +1221,13 @@ body.home-v3[data-intro='open'] .nav__logo {
 @media (prefers-reduced-motion: reduce) {
   .dots__dot, .dotrow__dot, .lines__line, .colourbar { transition: none; animation: none; }
 }
-/* Bettering — the photo fills the right half of the panel */
+/* Bettering — the photo takes half the panel, dead on the grid's middle.
+   No gutter: the orange and the photograph meet, they are not two
+   modules with air between them. */
 .panel__photo {
   position: absolute;
   top: 0; right: 0; bottom: 0;
-  width: 48.9%;
+  width: 50%;
   overflow: hidden;
 }
 /* Bettering's photo arrives with the orange card — no separate fade — and
@@ -1081,7 +1244,7 @@ body.home-v3[data-intro='open'] .nav__logo {
   .panel__photo img, .panel__photo.is-zoom img { transform: none; transition: none; }
 }
 .panel--bettering .panel__body,
-.panel--bettering .panel__head { max-width: 640px; }
+.panel--bettering .panel__head { max-width: min(640px, var(--p-half)); }
 
 
 /* ================================================================
@@ -1089,7 +1252,11 @@ body.home-v3[data-intro='open'] .nav__logo {
    ================================================================ */
 .news-v3 {
   position: relative;
-  padding: clamp(48px, 4.8vw, 92px) 0 clamp(140px, 8.6vw, 166px);
+  /* The floor was 140, which 8.6vw only reaches at ~1630 — so every width
+     from a phone to a laptop carried nearly the full 1920 gap under the
+     "read more" pill while everything around it had halved. 88 lets the
+     same ratio hold the whole way down. */
+  padding: clamp(48px, 4.8vw, 92px) 0 clamp(88px, 8.6vw, 166px);
   background: transparent;
 }
 /* heading far left · filters far right, sitting on the heading's baseline */
@@ -1149,13 +1316,35 @@ body.home-v3[data-intro='open'] .nav__logo {
   background: var(--c-orange);
 }
 
+/* One row, always — a rail rather than a grid, at every width. With the
+   four cards R2 draws it is indistinguishable from the old 4-up grid
+   (each card is 3 columns, so four of them plus their gutters are exactly
+   the content width and there is nothing to scroll); add a fifth and it
+   simply scrolls instead of starting a second row.
+   The rail bleeds out to the page margins and pads them back, so a card
+   that runs past the edge is cut by the window rather than by the
+   content column — which is what makes it read as scrollable. */
 .news-v3__grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 46px;
-  margin-top: 49px;
+  display: flex;
+  gap: var(--grid-gap);
+  margin: 49px calc(var(--gm) * -1) 0;
+  /* the bottom padding is the room the cards' reveal rises through:
+     overflow-x forces the other axis to clip too, so anything outside
+     this box is shaved mid-animation */
+  padding: 0 var(--gm) 40px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  scroll-padding-left: var(--gm);
+  scrollbar-width: none;
 }
+.news-v3__grid::-webkit-scrollbar { display: none; }
+/* three columns of the page grid, whatever the page grid currently is:
+   4 cards across on desktop (12 col), 2 + a peek on iPad (6 col), 1 + a
+   peek on a phone (4 col) */
 .card-v3 {
+  flex: 0 0 var(--col3);
+  scroll-snap-align: start;
   background: var(--c-white);
   display: flex;
   flex-direction: column;
@@ -1168,11 +1357,13 @@ body.home-v3[data-intro='open'] .nav__logo {
   transition: opacity 1.4s cubic-bezier(0.22, 1, 0.36, 1),
               translate 1.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
-/* a longer rise than the sitewide 40px, so the cards glide up rather than
-   blink in. :not(.is-in) keeps the landed state (translate 0) winning —
-   .card-v3.reveal on its own would tie with .reveal.is-in and, loading
-   later, would pin the cards down here forever. */
-.card-v3.reveal:not(.is-in) { translate: 0 80px; }
+/* The rise is the sitewide 40px, and no more: the rail clips its other
+   axis (see .news-v3__grid), so anything the cards start below their
+   landed position has to fit inside its bottom padding or it is shaved
+   off mid-reveal. :not(.is-in) keeps the landed state (translate 0)
+   winning — .card-v3.reveal on its own would tie with .reveal.is-in and,
+   loading later, would pin the cards down here forever. */
+.card-v3.reveal:not(.is-in) { translate: 0 40px; }
 /* Hover: the photo pushes in a little inside its frame and every line of
    copy goes orange. The card itself stays put — no lift, no shadow. */
 .card-v3__image img { transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1); }
@@ -1243,7 +1434,10 @@ body.home-v3[data-intro='open'] .nav__logo {
 
 /* the button sits close under the cards (Figma 48px); the extra air the
    section needed goes below it, in .news-v3's padding-bottom */
-.news-v3__cta { display: flex; justify-content: center; margin-top: 48px; }
+/* Figma puts 48px between the cards and the button; 40 of that is already
+   spent as the rail's bottom padding (the room its reveal rises through),
+   so only the remainder is added here. */
+.news-v3__cta { display: flex; justify-content: center; margin-top: 8px; }
 
 
 /* Pill button — Figma 150.7 × 49, radius 100 */
@@ -1304,22 +1498,41 @@ body.home-v3[data-intro='open'] .nav__logo {
 /* ================================================================
    06 — VENTURES / SCHOLARSHIP / FUNDING
    ================================================================ */
-.ventures { background: transparent; padding: 0; }
-/* Figma: 580px left column, 355px gutter, the right column running to the
-   margin — not two equal halves. */
+.ventures {
+  background: transparent;
+  padding: 0;
+  /* The height both columns open with, so the two logo rows are one line
+     and the copy under them starts level. Sized off the taller of the two
+     marks — the Scholarship seal, 51 at full size — and stepped down with
+     the marks themselves at the breakpoints below. */
+  --logo-row: 51px;
+}
+/* Figma draws 580 / 355 / the rest — which is the grid, not two halves:
+   the copy is columns 1–4 and the right-hand block opens on column 7, so
+   the "gutter" between them is 2 columns + 3 gutters (357 at 1920, drawn
+   355). Written that way it stays on the grid all the way down instead of
+   holding a 580px column against a shrinking window — at 1280 the fixed
+   version gave the copy 44% of the content where the design gives it 32%. */
 .ventures__grid {
   display: grid;
-  grid-template-columns: minmax(0, 580px) minmax(0, 1fr);
-  gap: clamp(40px, 18.5vw, 355px);
+  grid-template-columns: var(--col4) minmax(0, 1fr);
+  gap: calc(2 * var(--col) + 3 * var(--grid-gap));
   padding-top: 19px;
 }
 /* both marks are drawn at their native Figma size — D'Ventures 215 × 41,
-   D'Hub 130 × 33, 44px apart — so neither gets scaled up */
+   D'Hub 130 × 33, 44px apart — so neither gets scaled up.
+
+   The height is the SAME as `.ventures__title` opposite (see `--logo-row`
+   below), not the 41 of its own artwork. The two columns each opened with
+   a logo row of its own height — 41 here, 51 there — which put the marks
+   on two different centre lines and, because the copy simply follows in
+   the flow, started the two paragraphs 10px apart. One height for both
+   rows fixes both: the marks centre on one line and the copy tops meet. */
 .ventures__logos {
   display: flex;
   align-items: center;
   gap: 44px;
-  height: 41px;
+  height: var(--logo-row);
 }
 .ventures__logos img { width: 215px; height: 41px; display: block; }
 .ventures__logos img.is-dhub { width: 130px; height: 33px; }
@@ -1332,12 +1545,12 @@ body.home-v3[data-intro='open'] .nav__logo {
   font-size: clamp(28px, 2.1vw, 40px);
   line-height: 1.25;
   color: var(--c-black);
-  height: 51px;
+  height: var(--logo-row);
   display: flex;
   align-items: center;
   gap: 17px;
 }
-.ventures__seal { height: 51px; width: auto; display: block; }
+.ventures__seal { height: var(--logo-row); width: auto; display: block; }
 
 .ventures__text {
   font-family: var(--f-sans);
@@ -1345,11 +1558,17 @@ body.home-v3[data-intro='open'] .nav__logo {
   line-height: 25px;
   color: var(--c-grey);
   margin-top: 28px;
-  max-width: 577px;
+  /* no cap of its own: the grid column it sits in *is* the four-column
+     measure, at every width. A 577px max-width here only ever repeated
+     that at 1920 and then had to be undone in every tier below. */
 }
 .ventures__text a { text-decoration: underline; }
 .ventures__text a:hover { color: var(--c-orange); }
-.ventures__col .btn-pill { margin-top: 42px; }
+/* 40px of clear air between the last line of copy and the pill, as in R2
+   (ink 233 → button 271 in the "more" frame). 38 rather than 40 because
+   the 25px line box already leaves ~2px of leading under the last
+   line — the number to keep is the gap you can see, not the margin. */
+.ventures__col .btn-pill { margin-top: 38px; }
 
 /* Figma "Line 31": #FF6900 at 50% */
 .ventures__rule {
@@ -1361,10 +1580,14 @@ body.home-v3[data-intro='open'] .nav__logo {
 /* Funding — copy column on the left, a 1200 × 595 photo filling the
    right two-thirds. The logo sits at the top of the column, the text +
    button hang off the bottom so they line up with the photo's base. */
+/* Same story as the ventures grid: the drawn 562 / 58 / 1200 is columns
+   1–4, the grid's own gutter, and columns 5–12 (576 / 46 / 1198). Saying
+   it in columns keeps the photo two-thirds of the page at every desktop
+   width — the fixed 562 was taking 42% of the content at 1280. */
 .funding {
   display: grid;
-  grid-template-columns: minmax(0, 562px) minmax(0, 1200px);
-  gap: clamp(24px, 3vw, 58px);
+  grid-template-columns: var(--col4) minmax(0, 1fr);
+  gap: var(--grid-gap);
   padding-top: 78px;
 }
 /* The photo's 1200 × 595 crop sets the row height and the copy column
@@ -1383,7 +1606,10 @@ body.home-v3[data-intro='open'] .nav__logo {
   color: var(--c-grey);
   margin-top: auto;
 }
-.funding__col .btn-pill { margin-top: 12px; }
+/* Same 40px of clear air as the two blocks above. The button is the thing
+   pinned to the photo's bottom edge, so widening this gap lifts the copy
+   rather than dropping the pill. */
+.funding__col .btn-pill { margin-top: 38px; }
 /* the photo keeps the design's 1200 × 595 crop instead of stretching to
    whatever height the copy column resolves to */
 .funding__photo { overflow: hidden; aspect-ratio: 1200 / 595; }
@@ -1397,7 +1623,9 @@ body.home-v3[data-intro='open'] .nav__logo {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   height: 3px;
-  margin-top: 87px;
+  /* the air above the bar tracks the footer's own padding below it
+     (98 → 72), instead of sitting at a flat 87 on every screen */
+  margin-top: clamp(56px, 4.5vw, 87px);
 }
 /* One continuous wipe across the whole bar rather than six segments
    growing in turn — clipping the container keeps it a single stroke.
@@ -1481,50 +1709,385 @@ body.home-v3[data-intro='open'] .nav__logo {
   margin-top: 130px;
 }
 .footer-v3__copyright a:hover { color: var(--c-orange); }
+/* One line on a phone is too long for the two halves, so it wraps — and it
+   wrapped after the pipe, leaving a "|" dangling on the end of the first
+   line. Drop the separator and give the credit its own line instead, the
+   same treatment the legacy footer already had. */
+@media (max-width: 767px) {
+  .footer-v3__copyright { line-height: 20px; }
+  .footer-v3__copy-sep { display: none; }
+  .footer-v3__copyright a { display: block; }
+}
 
 
 /* ================================================================
-   RESPONSIVE
+   RESPONSIVE — one grid, three column counts
+
+   Desktop keeps R2's twelve columns exactly. Below 1280 the page drops
+   to six columns (both iPad orientations) and below 768 to four; the
+   sections are re-cut in `--col`, so a card or a copy column still
+   starts and stops on a column edge rather than on a percentage picked
+   to look about right.
+
+   What deliberately does NOT change with width:
+     · the colour bar keeps its six segments — that six-part rhythm is
+       the grid's signature on the page
+     · the news cards stay one scrolling row
+     · Being / Becoming / Belonging keep copy left, animation right all
+       the way down to the phone breakpoint, where there is no longer a
+       column to put a graphic in and it moves under the copy instead
+
+   NB `style.css` scales the whole page with `body { zoom: .9 }` between
+   768 and 1800px, so an iPad's 1024px viewport lays out at ~1138px.
+   Media queries still fire on the real viewport width — the numbers
+   below are device widths, not layout widths.
    ================================================================ */
 
-/* style.css scales the whole page with `body { zoom: .9 }` between 768
-   and 1800px. Viewport units shrink with it, so a plain 100svh banner
-   only covers 90% of the window — divide it back out, exactly as the
-   legacy `.hero` already does. */
+/* Viewport units shrink with that zoom, so a plain 100svh banner only
+   covers 90% of the window — divide it back out, exactly as the legacy
+   `.hero` already does. */
 @media (min-width: 768px) and (max-width: 1800px) {
   .hero-v3 {
     min-height: calc(100vh / 0.9);
     min-height: calc(100svh / 0.9);
+    /* The banner headline is the one place the 0.9 read as *smaller type*
+       rather than a tighter layout: 7.81vw of the window became 7.03, so
+       every screen under 1800 wore a headline a tenth down on the design.
+       Dividing the size back out (and the top inset with it) makes it
+       land on exactly the same proportion as 1801px up — the two sides of
+       the breakpoint now meet with no step.
+       The inset gets a little more than the correction alone: at 0.9 the
+       headline had only ~8px of air under the lockup, which read as stuck
+       to the nav. The floor is what clears the stacked menu: WORK · IMPACT
+       · ABOUT · CONNECT run down to ~140px on the right, and under about
+       1000px the first line is wide enough to reach them, so it starts
+       below the stack rather than through it. 184 at the top of the range
+       hands over to the 8.18vw above 1800 with no step. */
+    --hero-giant: clamp(48.9px, 8.68vw, 166.7px);   /* = 44 / 7.81 / 150 ÷ 0.9 */
+    padding-top: clamp(168px, 9.6vw, 184px);
+  }
+  /* Same correction for the opening's scrollbar nudge: `html`'s padding
+     is outside the zoom and renders at face value, while a length written
+     inside the overlay is scaled to 0.9 of it. Without dividing it back
+     out the words land ~0.8px shy of the seal. */
+  .opening {
+    --x-mid: calc(50% - var(--sbw, 0px) / 2 / 0.9);
+    --x-inset: calc(var(--sbw, 0px) / 0.9);
   }
 }
 
-@media (max-width: 1280px) {
-  .news-v3__grid { grid-template-columns: repeat(2, 1fr); gap: 32px; }
-  .panel { min-height: 0; padding-bottom: 60px; }
-  /* Copy on top, graphic underneath — every panel keeps its animation,
-     it just stops being a side-by-side layout. */
+
+/* ── iPad, both orientations — six columns ─────────────────────── */
+@media (max-width: 1279px) {
+  :root { --grid-cols: 6; }
+
+  .journey { gap: 12px; }
+  /* The panels stop being 800px tall and start being as tall as their
+     own copy, with a floor that leaves the graphic on the right room to
+     play. Everything else about them is unchanged: copy bottom-anchored
+     on the left, animation absolutely placed on the right. */
+  .panel {
+    min-height: 620px;
+    padding: 48px var(--panel-pad-x) 56px;
+  }
+  /* The head joins the body on the left three columns. On desktop it is
+     left long on purpose — the eyebrow runs six columns wide above the
+     artwork, as R2 draws it — but these panels are short enough that the
+     graphic reaches up beside it. `--p-half` is the panel's own column
+     edge, so both stop in exactly the same place.
+     Bettering caps its copy with a two-class selector, which would
+     otherwise outrank a bare `.panel__head` here and let the text run
+     out under the photo — hence naming it too. */
+  .panel__head,
+  .panel__body,
+  .panel--bettering .panel__head,
+  .panel--bettering .panel__body { max-width: var(--p-half); }
+
+  /* The graphics take the right three columns — the copy's mirror image,
+     so the gutter between them is the grid's own. Their desktop offsets
+     are in px against an 800px panel, so the vertical ones are restated
+     as percentages and travel with whatever height the copy resolves to. */
+  .panel__dots,
+  .panel__dotrow,
+  .panel__lines {
+    right: var(--panel-pad-x);
+    width: var(--p-half);
+    max-width: none;
+  }
+  /* …and they sit on the panel's middle. The three offsets here used to be
+     hand-picked percentages (12 / 46 / 20) carried over from the desktop's
+     pixel positions, and none of them actually centred: on a panel whose
+     height now comes from its own copy, all three graphics rode high.
+     `top: 50%` and a half-height pull-back is the same answer for all
+     three whatever each one's height turns out to be — the dots' is an
+     aspect-ratio, the row's is fixed, the plane's is a percentage. */
+  .panel__dots,
+  .panel__dotrow,
+  .panel__lines { top: 50%; translate: 0 -50%; }
+  .panel__lines { height: 58%; }
+  /* Bettering's photo is not a column module — it keeps the plain 50:50
+     split it has on desktop, so the orange and the picture always meet
+     on the panel's middle. */
+
+  /* ventures: the two blocks halve the six columns */
+  .ventures__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--grid-gap);
+  }
+  .ventures__title { max-width: 100%; }
+  .ventures__rule { margin-top: 64px; }
+
+  /* funding: copy left, photo right — the same arrangement as every other
+     width. It used to stack here (photo full width, copy underneath) on
+     the grounds that the photo could not hold its 1200 × 595 crop beside
+     a readable column; halving it rather than dropping it solves that,
+     and it matches the two blocks directly above, which are already two
+     equal columns at this width. The lockup comes down with the column so
+     it does not tower over the paragraph it introduces. */
+  .funding {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--grid-gap);
+    padding-top: 60px;
+  }
+  /* The lockup carries the seal inside its artwork, so it is sized by the
+     seal: at 228 wide that seal stands 76px, and 152 brings it to the 51
+     the Scholarship mark opposite is drawn at (`--logo-row`) — the two
+     marks in this section then read at the same size.
+     The margin is a floor under it: the copy hangs off the bottom of the
+     column (`margin-top: auto`, §06) so the pill meets the photo's base,
+     and at this width there is little slack left for the auto margin to
+     give, which had the paragraph coming up flush against the mark. */
+  .funding__logo { width: 152px; margin-bottom: 24px; }
+
+  /* A deeper crop than the desktop's 1200 × 595. Halving the photo's width
+     also halved its height, which left it a thin strip beside a copy
+     column of full-height text; 774 is that 595 taken up by 30% and gives
+     the column back something to sit against. */
+  .funding__photo { aspect-ratio: 1200 / 774; }
+
+  .footer-v3 { padding: 72px 0 40px; }
+  .footer-v3__copyright { margin-top: 80px; }
+}
+
+/* ── iPad landscape ────────────────────────────────────────────── */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  /* ~1138–1421 of layout width: wide enough that a 3-column card would
+     read as two enormous tiles, so the cards take two columns and three
+     of them stand in the frame with the fourth peeking */
+  .card-v3 { flex-basis: calc(2 * var(--col) + var(--grid-gap)); }
+  .card-v3__body { padding: 24px 28px 32px 32px; }
+}
+
+/* ── iPad portrait — the large ones. Anything narrower has already
+      gone to four columns below. ──────────────────────────────────── */
+@media (min-width: 900px) and (max-width: 1023px) {
+  /* two cards in the frame, the third peeking past the margin */
+  .card-v3 { flex-basis: var(--col3); }
+  .card-v3__body { padding: 24px 26px 30px 30px; }
+
+  /* the split is the same three-and-three; only the panel gets shorter.
+     (The row used to be nudged to `top: 44%` here — that was part of the
+     same hand-placed set as the offsets above, and it now fights the
+     centring, which leaves it 6% high. The graphics centre themselves.) */
+  .panel { min-height: 560px; }
+
+  /* hero: the description and the lockup stop sharing a row */
+  .hero-v3__foot {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 26px;
+  }
+  /* `.hero-v3__body` already caps at `--col4` — four of six here — so it
+     needs nothing extra; only the row direction changes. */
+
+  /* news heading and its filters likewise */
+  .news-v3__head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 22px;
+  }
+  .news-v3__filters { padding-bottom: 0; }
+
+  /* ventures: 3 columns each is too narrow for 16px copy — one block
+     under the other, each on the full six */
+  .ventures__grid { grid-template-columns: minmax(0, 1fr); gap: 56px; }
+
+  /* the footer keeps its three desktop columns — there is room for them,
+     and the gap clamp has already brought them closer */
+}
+
+/* D'Ventures and Scholarship stack from 1023 down (both breakpoints below
+   put the grid on one column), and three blocks then run down the page as
+   one undifferentiated column. The second one takes the same hairline
+   `.ventures__rule` already draws between Scholarship and Funding, so all
+   three are separated the same way. Written as a border on the block
+   rather than a second <hr>, so it can never show up while the two are
+   side by side. */
+@media (max-width: 1023px) {
+  .ventures__col + .ventures__col {
+    border-top: 1px solid rgba(255, 105, 0, 0.5);
+    padding-top: 56px;
+  }
+}
+
+/* ── four columns ──────────────────────────────────────────────
+      Earlier than the phone chrome on purpose: below ~900 a six-column
+      grid leaves columns too narrow to stand copy and a graphic side by
+      side, so this is where the panels stack and the sections go to one
+      column. The nav, margins and type sizes stay on the desktop
+      settings until 768 (the site-wide mobile breakpoint in style.css).
+      ---------------------------------------------------------------- */
+@media (max-width: 899px) {
+  :root { --grid-cols: 4; }
+
+  /* Each panel is as tall as its own contents. The three used to share a
+     height (`grid-template-rows: repeat(3, 1fr)`) so their graphics would
+     line up across the stack — but the copy is very unevenly long, so the
+     shorter panels bought that alignment with 200px of dead air between
+     the words and the animation. Panels sized to their own copy read far
+     better: the gap under the copy is then the same in all four. */
+  .journey { gap: 10px; }
+  .panel { min-height: 0; padding: 40px var(--panel-pad-x) 48px; }
+  /* Four columns is not enough to stand a graphic beside the copy, so
+     this is where the animation leaves the right-hand side: copy on top,
+     graphic underneath, every panel keeping its own motion. `relative`,
+     not `static`: the dots and rules inside are absolutely positioned
+     and this box has to stay their containing block, or they resolve
+     against the whole panel and scatter behind the words. `inset: auto`
+     drops the desktop offsets. */
   .panel__head { order: 1; }
-  .panel__body { order: 2; }
-  /* `relative`, not `static`: the dots and rules inside are absolutely
-     positioned, so the box has to stay their containing block — otherwise
-     they resolve against the whole panel and scatter behind the copy.
-     `inset: auto` drops the desktop offsets so it just sits in the flow. */
+  .panel__body { order: 2; margin-top: 24px; margin-bottom: 44px; }
+  .panel__head,
+  .panel__body,
+  .panel--bettering .panel__head,
+  .panel--bettering .panel__body { max-width: 100%; }
+  /* One slot, four graphics. Every panel gives its animation the same
+     square — same width, same height, same place — and the artwork
+     centres itself inside it, so the four panels read as one set rather
+     than four differently-shaped boxes. (Each graphic already positions
+     its own parts against this box: the row sits on its 50% line, the
+     plane opens either side of it, the scatter spreads across it.)
+     It follows straight on from the copy — the 44px under `.panel__body`
+     is the whole gap — rather than being parked at the panel's bottom. */
   .panel__dots, .panel__dotrow, .panel__lines, .panel__photo {
     order: 3;
     position: relative;
     inset: auto;
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+    aspect-ratio: 1;
+    margin: 0 auto;
+    overflow: hidden;
   }
-  .panel__dots   { width: 100%; max-width: 420px; margin: 40px 0 0 auto; }
-  .panel__dotrow { width: 100%; height: 40px; margin-top: 48px; }
-  .panel__lines  { width: 100%; height: 300px; margin-top: 44px; }
-  .panel__photo  { width: 100%; height: 280px; margin-top: 40px; }
-  /* photo above the copy — the column can't hold its 595px next to it */
-  .funding { grid-template-columns: 1fr; gap: 32px; padding-top: 60px; }
-  .funding__col { min-height: 0; }
-  .funding__text { margin-top: 32px; }
-  .funding__photo { order: -1; height: clamp(220px, 34vw, 420px); }
+  /* The row is the one graphic that does not centre itself: its dots hang
+     12px from the top of a box that is 40px tall on desktop, which put
+     them against the ceiling of a 400px square. The plane already opens
+     around its 50% line and the scatter already spreads across the whole
+     box, so this is all that was needed for the three to sit alike. */
+  .panel__dotrow .dotrow__dot {
+    top: 50%;
+    translate: 0 -50%;
+  }
+  /* Same story for the dot the scatter collapses into. `left`/`top` place
+     a corner, and R2's target (50% / 48.29%, straight off the artwork's
+     own core ellipse) is that corner's position — fine where the graphic
+     is a decoration off to one side, but in a centred square it leaves
+     the one surviving dot half its own width right of the middle and a
+     little high.
+     Pulling every dot back by half its own size turns `--x`/`--y` into a
+     centre rather than a corner (the slot is square here, so the same
+     percentage reads the same in both axes), and the core is then given
+     the slot's exact middle to sit on — both at rest and at the end of
+     the gather. Correcting this on `.is-on` alone was what made the core
+     flick: it sat off-centre while the copy read, then jumped, because
+     the core's own `.is-on` rule transitions `scale` only and left/top
+     had nothing to ease on. Now it never moves. */
+  .panel__dots .dots__dot {
+    margin-left: calc(var(--s) / -2);
+    margin-top: calc(var(--s) / -2);
+  }
+  .panel__dots .dots__dot--core { top: 50%; }
+  .panel__dots.is-on .dots__dot {
+    left: 50%;
+    top: 50%;
+  }
+
+  /* Bettering is the odd one out of the four: a photograph, not a line
+     drawing that needs air around it. It leaves the shared 400px square
+     and runs the panel's full width, out through the side padding and
+     flush with the bottom edge — the panel drops its own bottom padding
+     so no band of orange is left under the picture. On desktop the photo
+     already bleeds to two panel edges; this is the same idea stacked. */
+  /* named through `.journey` so it outranks the plain `.panel` padding the
+     phone breakpoint restates further down */
+  .journey .panel--bettering { padding-bottom: 0; }
+  .panel--bettering .panel__photo {
+    width: auto;
+    max-width: none;
+    margin: 0 calc(var(--panel-pad-x) * -1);
+    /* Half the height of the square the other three graphics use: at full
+       bleed a square is a very tall band on a phone, and the picture ends
+       up taller than the copy above it. 3:2 is the middle ground: still
+       a closing image rather than a second screen, but with enough sky
+       above her for the crop to breathe. */
+    aspect-ratio: 3 / 2;
+  }
+
+  /* one card in the frame, the next peeking */
+  .card-v3 { flex-basis: var(--col3); }
+  .card-v3__body { padding: 24px 26px 30px 30px; }
+  .news-v3__head { flex-direction: column; align-items: flex-start; gap: 24px; }
+  .news-v3__filters { flex-wrap: wrap; padding-bottom: 0; }
+
+  /* hero: the description and the lockup stop sharing a row */
+  .hero-v3__foot {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 26px;
+  }
+  .hero-v3__body { max-width: var(--col3); }
+
+  .ventures__grid { grid-template-columns: minmax(0, 1fr); gap: 56px; }
+  .ventures__rule { margin-top: 56px; }
+  .funding { padding-top: 48px; }
+
+  /* Only the lockup gives up its column — it is 270px wide and would
+     squeeze the two link columns to nothing. The links themselves have
+     room to sit side by side all the way down, so they do: a single
+     stacked column here reads as a much longer, emptier footer than it
+     needs to be. */
+  .footer-v3__inner {
+    grid-template-columns: auto auto;
+    justify-content: space-between;
+    gap: 44px 32px;
+  }
+  .footer-v3__inner > a:first-child { grid-column: 1 / -1; }
+  .footer-v3__copyright { text-align: left; margin-top: 48px; }
+
+  /* Tablet only: `space-between` parked the two link groups on opposite
+     margins with the whole middle of the row empty, and the first one
+     hanging under the lockup as if it belonged to it. There is room to
+     start it on the grid's fourth column instead, so the pair reads as
+     one block. The empty track is half the row less half a gutter —
+     which is exactly where a six-column grid puts its fourth column
+     line — and the legal links keep the right margin.
+     A phone is too narrow for that, so it keeps the split above. */
+  @media (min-width: 768px) {
+    .footer-v3__inner {
+      grid-template-columns: calc(50% - var(--grid-gap) / 2) auto 1fr;
+      justify-content: normal;
+      column-gap: var(--grid-gap);
+    }
+    .footer-v3__col   { grid-column: 2; }
+    .footer-v3__legal { grid-column: 3; justify-self: end; }
+  }
 }
 
+/* ── phone chrome — the site-wide mobile breakpoint ───────────────
+      Layout is already handled above; this is the nav, the margins and
+      the type that only a phone needs.
+      ---------------------------------------------------------------- */
 @media (max-width: 767px) {
   .wrap { padding: 0 var(--gm-mob); }
 
@@ -1543,70 +2106,370 @@ body.home-v3[data-intro='open'] .nav__logo {
   .nav--v3 .nav__actions > * { pointer-events: auto; }
   .nav--v3 .nav__logo { grid-column: 2; grid-row: 1; justify-self: center; position: relative; z-index: 1; }
 
-  /* the headline has to fit inside the 20px margins, so the giant serif
-     drops below the 7.8vw desktop ratio */
-  :root { --hero-giant: 9.6vw; }
+  /* Both phone glyphs read #808080, the same grey the desktop pill uses —
+     `invert(50%)` maps the icons' pure black to exactly that. The search
+     already had it sitewide (§00); the menu was still drawn black. */
+  .nav--v3 .nav__hamburger img {
+    filter: invert(50%) sepia(0%) saturate(0%) hue-rotate(0deg)
+            brightness(100%) contrast(100%);
+  }
+  /* No orange disc on a phone: the search hover is just the glyph going
+     brand orange, like the menu beside it. The disc (drawn in style.css
+     for every search button) knocked the icon out white, which on the
+     narrow white bar read as a solid orange blob — hence killing both it
+     and the white-knockout hover here.
+     The hover filter lists the same six functions in the same order as
+     the resting one so it interpolates instead of flashing through odd
+     hues, and `.nav--scrolled` is named explicitly because style.css's
+     own knockout rule carries that class and would otherwise outrank
+     this on the sticky bar. */
+  .nav--v3 .nav__search-btn::before { display: none; }
+  .nav--v3 .nav__search-btn:hover img,
+  .nav--v3.nav--scrolled .nav__search-btn:hover img,
+  .nav--v3 .nav__hamburger:hover img,
+  .nav--v3.nav--scrolled .nav__hamburger:hover img {
+    filter: invert(46%) sepia(89%) saturate(3098%) hue-rotate(2deg)
+            brightness(104%) contrast(104%);
+  }
+
+  /* ── Sticky bar, phone (R2 12014-57) ─────────────────────────────
+     Not the desktop's compact pill on the right: on a phone the white
+     bar runs the full width inside the page margins — search left, the
+     seal dead centre, the menu right — floating on the peach with 18px
+     of air above it and 5.5 below. Square corners, no shadow, exactly
+     as the design draws it (440 frame → 400 bar, 52.8 tall). */
+  .nav--v3.nav--scrolled { background: transparent; box-shadow: none; }
+  .nav--v3.nav--scrolled .nav__inner {
+    height: auto;
+    padding: 18px var(--gm-mob) 5.5px;
+  }
+  /* the full lockup gives way to the seal; 中文 lives in the menu panel */
+  .nav--v3.nav--scrolled .nav__logo,
+  .nav--v3.nav--scrolled .nav__lang { display: none; }
+  .nav--v3.nav--scrolled .nav__actions {
+    position: relative;
+    height: 52.8px;
+    padding: 0 20px;
+    background: var(--c-white);
+    animation: nav-pill-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.14s both;
+  }
+  /* absolutely placed rather than left to `space-between`: the search
+     glyph is 22 wide and the menu 40.7, so a flex-distributed seal would
+     sit ~9px left of the bar's middle */
+  .nav--v3.nav--scrolled .nav__seal {
+    display: block;
+    position: absolute;
+    left: 50%;
+    translate: -50% 0;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nav--v3.nav--scrolled .nav__actions { animation: none; }
+  }
+
+  /* The giant serif runs a wider ratio than the desktop 7.81vw — a phone
+     line holds two or three words, so the type can be much larger before
+     anything is at risk. 11vw is measured against the longest word:
+     the longest line is "a compassionate" (the markup ties those two
+     words together with a non-breaking space), and at 12.1vw it measures
+     ~300px on a 375 phone and ~256 on a 320 — both inside the width the
+     margins leave.
+     The cap is the handover to the next breakpoint: 768px lays out at
+     ~60px, so holding at 64 from 529 up means the two sides of 767/768
+     nearly meet instead of stepping. */
+  :root { --hero-giant: min(12.1vw, 64px); }
 
   /* the full-screen height is already sitewide; only the insets change */
   .hero-v3 { padding: 112px var(--gm-mob) 0; }
-  /* description and lockup stack rather than sitting on one row */
-  .hero-v3__foot {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 28px;
-    padding-bottom: 36px;
-  }
+  .hero-v3__foot { gap: 28px; padding-bottom: 36px; }
   .hero-v3__body { font-size: 15px; line-height: 26px; }
   .colourbar--hero { height: 8px; }
   .intro-v3 { font-size: 22px; line-height: 32px; }
 
-  /* The three white panels share a height (the tallest of them wins) so
-     the stack reads as one set of cards; Bettering keeps its own height.
-     `1fr` rows in an auto-height grid all resolve to the largest item.
-     NB: the track list assumes exactly these four panels. */
-  .journey {
-    display: grid;
-    grid-template-rows: repeat(3, 1fr) auto;
-    gap: 10px;
+  /* The opening's quote plate reads on the phone's own margins, not the
+     desktop 50px — it was breaking "…as well as" onto a line of its own
+     for the sake of 60px of air it did not need. The floor of the type
+     scale is tied to that width as well: the longest line measures about
+     11.4× the font size, so below ~390px the size follows the box down
+     instead of forcing a wrap. */
+  .opening__motto {
+    max-width: calc(100vw - 2 * var(--gm-mob));
+    --q-size: clamp(
+      min(30px, (100vw - 2 * var(--gm-mob)) / 11.4),
+      3.13vw,
+      60px
+    );
   }
-  .panel { padding: 40px 24px 48px; }
-  /* copy stays at the top, the graphic takes the slack and sits at the
-     bottom — so all three graphics line up along the same baseline */
-  .panel__body { margin-top: 24px; margin-bottom: 44px; }
-  .panel__dots   { margin: auto 0 0 auto; }
-  .panel__dotrow,
-  .panel__lines,
-  .panel__photo  { margin-top: auto; }
-  .panel__note, .panel__label { font-size: 15px; line-height: 26px; }
-  .panel__list li, .panel__bullets li { font-size: 18px; }
-  .panel__crumbs { font-size: 20px; gap: 0 10px; }
+
+  /* the inset comes down to 24 on a phone — set as the variable, not as a
+     literal, so Bettering's full-bleed photo (which cancels it with a
+     negative margin) still lines up on the panel's edges */
+  .panel { --panel-pad-x: 24px; padding: 40px var(--panel-pad-x) 48px; }
+  /* ── the phone's type scale ──────────────────────────────────
+     Three steps, and every piece of copy takes one of them:
+       46      panel title
+       22      lede (the serif statement under a title)
+       15/24   ALL body copy — the sans paragraphs and the serif lists
+     What was there instead: sans copy at 15 (note, label), 16 (ventures,
+     funding) and 18 (the question) — near-misses that read as a mistake,
+     with two of them in the same paragraph on Belonging — and the serif
+     lists at one size but two different leadings. The whole scale also
+     ran a size large for a 375px screen, so each step comes down with it.
+     Bettering's note is named because its own rule sets a 30px leading
+     that would otherwise outrank this one.
+
+     The serif lists belong to the same step, but they cannot take the same
+     NUMBER. Measured on the rendered fonts: Fira Sans has an x-height of
+     54 per 100px and Baskerville only 41. Set both at 15 and the serif
+     reads a size smaller — which is exactly what happened when they were
+     first levelled here. The desktop never had that problem because it
+     was already compensating without saying so: 22 serif against 18 sans
+     is a ratio of 1.22.
+     So the lists carry the same compensation, at the same 1.27 the phone
+     needs to bring 15px of Baskerville up to the apparent size of 15px of
+     Fira Sans. Same step, different number, matching size on the page. */
+  .panel__note,
+  .panel--bettering .panel__note,
+  .panel__label,
+  .panel__question,
+  .ventures__text,
+  .funding__text { font-size: 15px; line-height: 24px; }
+  .panel__list li,
+  .panel__bullets li { font-size: 19px; line-height: 27px; }
+  .panel__lede { font-size: 22px; }
+  /* The line above the title — the eyebrow on three panels, the Being →
+     Becoming → Belonging trail on Bettering — is one role, so it takes
+     one size. 24 and 20 were both too heavy next to the title right under
+     them. Fluid rather than fixed because of the trail: it is a single
+     unbreakable run of three words and three arrows, and 4.4vw is what
+     holds it on one line all the way down to a 320px screen, reaching the
+     18px ceiling on a 410 phone. */
+  /* The bullets are one list, not three statements. Every item here wraps
+     to two or three lines on a phone, so at the desktop's 18px gap the
+     space between items was almost a blank line against a 24px leading —
+     the group came apart and read as separate blocks. 10px keeps each
+     item clearly its own (the dot already does that work) while the three
+     of them hold together, and the list closes up to the lede and the
+     note above and below it for the same reason. */
+  .panel__bullets { gap: 10px; margin-top: 20px; }
+  .panel--bettering .panel__note { margin-top: 22px; }
+
+  .panel__eyebrow,
+  .panel__crumbs { font-size: clamp(14px, 4.4vw, 18px); }
+  .panel__crumbs { gap: 0 10px; }
   .panel__crumbs span::after { margin-left: 10px; }
 
-  .news-v3 { padding: 40px 0 150px; }
-  .news-v3__cta { margin-top: 40px; }
-  .news-v3__head { flex-direction: column; align-items: flex-start; gap: 24px; }
-  .news-v3__filters { gap: 22px; flex-wrap: wrap; padding-bottom: 0; }
-
-  /* cards become a swipeable rail instead of a tall stack; it bleeds to
-     both edges so the next card peeks in and reads as scrollable */
-  .news-v3__grid {
-    display: flex;
-    gap: 16px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-snap-type: x mandatory;
-    scroll-padding-left: var(--gm-mob);
-    margin: 44px calc(var(--gm-mob) * -1) 0;
-    padding: 16px var(--gm-mob) 36px;   /* room for the card shadow */
-    scrollbar-width: none;
+  /* 150 was more air under the pill than the phone spends anywhere else on
+     the page — the same 88 the section's own clamp bottoms out at. */
+  .news-v3 { padding: 40px 0 88px; }
+  /* Half the air the pill used to sit on (76 → 38). Only 2 of it is this
+     margin: the rail already carries 36px of padding under the cards —
+     the room their reveal rises through, which `overflow-x` would
+     otherwise shave — and that reads as part of the same gap. */
+  .news-v3__cta { margin-top: 2px; }
+  .news-v3__filters { gap: 22px; }
+  /* The cards and the footer links belong to the same phone scale as the
+     panels: a heading step at 18 and body at 15/24. A card title at 22 ran
+     three lines inside a card that is only ~290 wide, and the footer links
+     were the largest sans type left on the page. */
+  .card-v3__title { font-size: 18px; }
+  .card-v3__desc { font-size: 15px; line-height: 24px; }
+  .footer-v3__nav a { font-size: 16px; }
+  /* The two footer columns hold a different number of links (3 and 4) at
+     different sizes, so their rows drifted apart down the block and the
+     right one ran ~70px past the left. Same 22px line box as the nav links
+     puts the first row on the same line, and the gap is what makes the
+     four spell out the same height as the three:
+       3 × 22 + 2 × 22  =  4 × 22 + 3 × (22 / 3)  =  110
+     `align-self: start` is what keeps that height — the column is a grid
+     item and would otherwise stretch to the whole row, which is taller
+     than the nav (the social icons hang under it). */
+  .footer-v3__legal {
+    align-self: start;
+    gap: calc(22px / 3);
   }
-  .news-v3__grid::-webkit-scrollbar { display: none; }
-  .card-v3 { flex: 0 0 78%; scroll-snap-align: start; }
+  .footer-v3__legal a { line-height: 22px; }
+  /* …and the column starts on the grid's third line rather than being
+     pushed onto the right margin by `space-between` — the same move the
+     tablet makes with its fourth. Half the row less half a gutter, plus
+     the gutter, is where column 3 of 4 begins. */
+  .footer-v3__inner {
+    grid-template-columns: calc(50% - var(--grid-gap) / 2) auto;
+    justify-content: normal;
+    column-gap: var(--grid-gap);
+  }
+  /* the lockup comes down the same fifth as the pill */
+  .footer-v3__logo { width: 216px; }
+
+  /* The pill is drawn at 151 × 49 for a 1920 canvas; on a phone it was the
+     heaviest object on the page next to 15px copy. Every measurement comes
+     down by a fifth — box, padding, label, the gap to its arrow, and the
+     arrow itself — so it is the same button, just smaller. */
+  .btn-pill {
+    min-width: 121px;
+    height: 39px;
+    padding: 0 18px;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .btn-pill__arrow { width: 12px; height: 5.81px; }
+  /* And it hangs on the same 28px of air the copy hangs under the logo
+     above it, instead of the 38 it kept from the desktop frame — one
+     rhythm down the block. */
+  .ventures__col .btn-pill,
+  .funding__col .btn-pill { margin-top: 28px; }
+  .funding__text { margin-top: 28px; }
+
+  /* The two marks are drawn at native size — 215 + 44 + 130 = 389, wider
+     than the 320–400 a phone has between its margins, so the D'Hub logo
+     ran off the right edge. Scaled by height (they are different heights,
+     so a single width does not work for both) with a wrap as the backstop
+     on the very narrowest screens. */
+  .ventures__logos {
+    height: auto;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  /* Sized off the Scholarship block, so the three stacked blocks open at
+     the same weight: its title sets 28px, which is what the D'Ventures
+     wordmark now stands at, and D'Hub keeps its 32:26 relationship to it. */
+  .ventures__logos img          { width: auto; height: 28px; }
+  .ventures__logos img.is-dhub  { width: auto; height: 23px; }
+
+  /* Same idea for the funding lockup, which carries the seal inside the
+     artwork: at 228 wide the seal came out 76px tall against the 51px the
+     Scholarship heading shows it at. 152 puts the two seals on the same
+     height, and the whole block stops out-shouting the copy under it. */
+  .funding__logo { width: 152px; }
+
+  /* the rail is already the layout — only the bleed changes, because the
+     page margin does */
+  .news-v3__grid {
+    margin: 44px calc(var(--gm-mob) * -1) 0;
+    padding: 0 var(--gm-mob) 36px;
+    scroll-padding-left: var(--gm-mob);
+    scroll-snap-type: x mandatory;
+  }
   .card-v3__body { padding: 24px; }
-
-  .ventures__grid { grid-template-columns: 1fr; gap: 56px; }
-  .ventures__rule { margin-top: 56px; }
-
-  .footer-v3__inner { grid-template-columns: 1fr; gap: 40px; }
-  .footer-v3__copyright { text-align: left; margin-top: 48px; }
 }
+
+
+/* ================================================================
+   09 — INNER PAGES ON THE R2 CANVAS  (Listing, Articles)
+
+   The inner pages keep their own content — the story grid, the
+   article body, the breadcrumb — and swap everything around it for
+   what the home page now wears: the V3 nav (markup change, no CSS
+   needed here — §00/§00b are keyed on `.nav--v3`, not on
+   `body.home-v3`), the colour bar, the V3 footer, and one flat peach
+   canvas in place of R1's blurred gradient.
+
+   Only the joins between the two need stating, and they are all
+   consequences of the nav no longer being a fixed 104px bar.
+   ================================================================ */
+
+/* Same canvas as `body.home-v3`: kill style.css's peach→white gradient
+   (its bottom 220px of white existed to meet the old white footer, which
+   is gone) and paint one flat peach instead. background-COLOR stays the
+   thing that changes, so iOS Safari still samples it for the status bar. */
+body.inner-v3 {
+  background-image: none;
+  background-color: var(--c-bg);
+}
+
+@media (min-width: 768px) {
+  /* Desktop V3 makes the bar `position: absolute`, so it scrolls away with
+     the page before the sticky pill takes over — and takes no layout space
+     at all. That makes this padding the literal distance from the top of
+     the page to the breadcrumb, which both R2 frames put at 145.1
+     (OPT1_02_Listing 8009:2, and the article's "Top" group 8024:7215).
+     The old 140 was measured against a fixed 104px bar and meant something
+     different; this is read straight off the design.
+
+     It does not need to clear the nav. The bar runs 32.5 → 156.9 — its
+     stacked menu is four 22px lines on a 34px pitch and does not scale —
+     so it is 12px taller than this inset. But the menu is hard right and
+     the breadcrumb is centred, exactly as the design draws them. */
+  .inner-v3 .listing,
+  .inner-v3 .article { padding-top: 145px; }
+}
+
+/* The colour bar owns the gap below the content, so the sections give up
+   their bottom padding entirely. R2 leaves 118 between the end of the
+   content and the bar on both pages (listing: pager ends 1973, footer
+   frame — whose first child *is* the bar — opens at 2091; article:
+   4014 → 4129, the same 115–118). 6.15vw hits 118 at 1920, and the floor
+   of 64 is what a phone gets.
+
+   NB deliberately OUTSIDE the desktop query above, unlike the top inset.
+   While it was in there, phones kept the old section padding (130 on the
+   listing, 120 on the article) AND added the bar's own margin on top of
+   it — 186px and 176px of empty peach between the last card and the
+   colour bar, close to half a phone screen of nothing. The top inset does
+   belong to desktop only: there the nav is `absolute` and takes no space,
+   while on a phone it is still `fixed` and 72px tall, so 104 is right. */
+.inner-v3 .listing,
+.inner-v3 .article { padding-bottom: 0; }
+.inner-v3 .colourbar { margin-top: clamp(64px, 6.15vw, 118px); }
+
+/* ── how the page arrives ────────────────────────────────────────
+   The shared `.reveal` (style.css) runs 1.2s on cubic-bezier(0.22, 1,
+   0.36, 1) — easeOutQuint, which is enormously front-loaded: measured on
+   this page it was 24% up after 120ms and 88% after 470ms, so nearly all
+   the movement happened in the first third and the rest was a long
+   invisible tail. It reads as a snap.
+
+   The other way round — easing *in* as well as out — was worse: nothing
+   visibly happened for the first quarter second and the whole page felt
+   like it was dragging. So: the same 1.2s, on an ease-out that leaves
+   immediately but decelerates far more gently than quint. At a tenth of
+   the way through, quint is already 41% home and this is 27%.
+
+   The travel is the other half of it, and it is SHORTER, not longer — 32px.
+   Stacked lines that lift one after another (title, then subtitle, then the
+   tag row) each hold their offset until their turn comes, so the gaps
+   between them visibly stretch by the full travel and snap back. At 56px
+   that is plainly visible and reads as the tags being shoved down before
+   they rise. At 32 the fade carries the effect and the stretch stops
+   registering.
+
+   Scoped to the inner pages. The home page's own sequencing (§8.7/8.8 in
+   script.js) is written around its own numbers and is left alone. */
+.inner-v3 .reveal {
+  translate: 0 32px;
+  transition-duration: 1.2s;
+  transition-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+}
+/* `.reveal.is-in` in style.css is the same specificity as the rule above
+   and loses on order, so the landed state has to be restated or nothing
+   ever comes back to zero. */
+.inner-v3 .reveal.is-in { translate: 0 0; }
+
+/* ── the current section ─────────────────────────────────────────
+   Only the inner pages mark one, and the legacy marker does not survive
+   the change of axis: `.nav__link--active::after` (style.css) hangs a dot
+   11px *below* the link, which worked under a horizontal bar but in the
+   stacked menu lands in the 12px gap between IMPACT and ABOUT — where it
+   reads as ABOUT's. R2 has a marker for exactly this already: the open
+   section goes orange with a 4px dot leading it in from the left, which
+   is `.nav__link--mega-active` (§00b). "You are here" borrows it. */
+.inner-v3 .nav--v3 .nav__link--active::after { display: none; }
+.inner-v3 .nav--v3 .nav__link--active { color: var(--c-orange); }
+.inner-v3 .nav--v3 .nav__link--active::before { scale: 1; }
+/* …and stands down while the mega is open, so the only orange link is the
+   section actually showing. Two dots at once would be one claim too many. */
+.inner-v3 .nav--v3.nav--mega-open .nav__link--active:not(.nav__link--mega-active) {
+  color: var(--c-grey);
+}
+.inner-v3 .nav--v3.nav--mega-open .nav__link--active:not(.nav__link--mega-active)::before {
+  scale: 0;
+}
+/* hover still wins over both */
+.inner-v3 .nav--v3 .nav__link--active:hover { color: var(--c-orange); }
+
+/* The article's related-stories rail and the story cards are white plates
+   that used to sit on a gradient wash; on the flat peach they read as they
+   do on the home page, so nothing about them changes here. What does is
+   the page end: style.css fades the last 120px of the page into a white
+   `.footer` (`.listing-page .footer::before`). There is no `.footer` on
+   these pages any more — the selector simply stops matching — and the V3
+   footer is transparent, so the peach runs unbroken to the bottom. */
