@@ -2592,13 +2592,39 @@ body.home-v3 .search-overlay__close span { width: 22px; }
   color: var(--c-black);
   margin-top: 14px;
 }
+/* The category line is the one coloured thing on a card, and it takes its
+   colour FROM the category (R2 OPT1_02_Listing, 8009:2 — twelve cards, the
+   same label text in six different colours, which is the design showing the
+   mechanism rather than the mapping).
+
+   The palette is the brand colour bar with one substitution: the bar's
+   yellow-green #c6c925 is replaced by #816da2. That is not an oversight in
+   the design — 12px of #c6c925 on the peach ground is close to invisible,
+   where the other five all hold.
+
+   A category with no entry here falls back to orange, so a new one is never
+   invisible — it just has not been given its colour yet. */
+:root {
+  --cat-education-excellence: #ff6900;   /* colour bar 1 */
+  --cat-wellbeing:            #2e8d46;   /* colour bar 2 */
+  --cat-mindful-living:       #36a4a5;   /* colour bar 4 */
+  --cat-above-beyond:         #e88793;   /* colour bar 5 */
+  --cat-impact-strategy:      #573c83;   /* colour bar 6 */
+  --cat-dventures:            #816da2;   /* stands in for the bar's yellow */
+}
 .story-card__category {
   font-family: var(--f-sans);
   font-weight: 400;
   font-size: 12px;
-  color: var(--c-orange);
+  color: var(--cat, var(--c-orange));
   margin-top: 22px;
 }
+.story-card__category[data-cat="education-excellence"] { --cat: var(--cat-education-excellence); }
+.story-card__category[data-cat="wellbeing"]            { --cat: var(--cat-wellbeing); }
+.story-card__category[data-cat="mindful-living"]       { --cat: var(--cat-mindful-living); }
+.story-card__category[data-cat="above-beyond"]         { --cat: var(--cat-above-beyond); }
+.story-card__category[data-cat="impact-strategy"]      { --cat: var(--cat-impact-strategy); }
+.story-card__category[data-cat="dventures"]            { --cat: var(--cat-dventures); }
 .story-card__tags {
   display: flex;
   flex-wrap: wrap;

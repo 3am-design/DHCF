@@ -1973,6 +1973,12 @@ body.home-v3[data-intro='open'] .nav__logo {
     order: 3;
     position: relative;
     inset: auto;
+    /* MUST be reset with `inset`, not left to it. The tier above centres
+       these on the panel with `top: 50%` + `translate: 0 -50%`, and while
+       `inset: auto` undoes the offset, `translate` is its own property and
+       survives — every graphic came out half its own height too high and
+       printed straight over the copy. */
+    translate: none;
     width: 100%;
     max-width: 400px;
     height: auto;
@@ -2473,3 +2479,80 @@ body.inner-v3 {
    `.footer` (`.listing-page .footer::before`). There is no `.footer` on
    these pages any more — the selector simply stops matching — and the V3
    footer is transparent, so the peach runs unbroken to the bottom. */
+
+
+/* ================================================================
+   10 — CHINESE (zh-Hant) — the V3 display sizes
+
+   style.css already carries a zh-Hant block, but every selector in it
+   belongs to the V1 home page (.hero__headline, .pillars__heading,
+   .intro__foundation-headline …) — none of which the V3 pages use. This
+   is the same idea for the components that replaced them.
+
+   Why any of it is needed: the display sizes were set on Latin display
+   type, which is mostly narrow letters with plenty of sidebearing. Every
+   Chinese glyph is full-width, so the same figure sets a line roughly
+   twice as long. At 150px the banner's second line measures 18 glyphs ×
+   150 = 2700px against 1820 of content, and broke mid-phrase — "與夥伴同
+   行，" left a lone 行， on its own line.
+
+   Only the two giant steps move. The lede, the panel copy, the news
+   heading and the section titles were all measured and hold their line
+   counts in both languages, so they are left exactly as they are.
+   ================================================================ */
+html[lang="zh-Hant"] {
+  /* Two numbers, each set by a line that must not break.
+
+     The CAP is line two — 將慈悲化作行動，共建更有溫度的社會。 — which is
+     eighteen glyphs and has to sit on one line: 18 × 100 = 1800 inside the
+     1820 of content at 1920. It holds one line all the way down to the
+     phone breakpoint (at 768 it measures 718 against 753). Anything larger
+     buys nothing, because the line splits at its comma and the banner
+     becomes three lines instead of the two the design draws.
+
+     The FLOOR is the longest single clause, 共建更有溫度的社會。 at ten
+     glyphs: 32 × 10 = 320 inside the 335 a 375px phone leaves. Below the
+     breakpoint line two can no longer fit whole at any readable size, so
+     it turns at its comma — never mid-phrase, which is what the clause
+     split below is for. */
+  --hero-giant: clamp(32px, 5.2vw, 100px);
+}
+/* The 1661px measure on `.hero-v3__title` is the English banner's own line
+   length. Chinese line two runs 1797 at the cap above, so the measure — not
+   the type size — was what forced the break; it split at the comma however
+   small the font got. The page margins are the real limit here (1820 of
+   content at 1920), and 1797 sits inside them. */
+html[lang="zh-Hant"] .hero-v3__title { max-width: none; }
+
+/* Between 768 and 1800 `body` carries `zoom: .9`, and §RESPONSIVE divides
+   the banner size back out of it on `.hero-v3` — which sits closer to the
+   title than the `html` rule above and therefore wins outright, putting
+   the English 166.7px cap back on the Chinese banner. The same correction,
+   with the Chinese numbers: 111.1 is the 100 cap ÷ 0.9, 35.6 the 32 floor.
+
+   5.6vw rather than the 5.78 that would make the visual size identical
+   across the 1800 boundary: at 5.78 the two lines only fit on one line
+   each above a 1416px window, and a 1280 laptop — the common case — would
+   have shown four lines. 5.6 brings that down to ~970px and costs a 3px
+   step at 1800 that is not visible in use. Below ~970 the line turns at
+   its comma, as it does on a phone. */
+@media (min-width: 768px) and (max-width: 1800px) {
+  html[lang="zh-Hant"] .hero-v3 {
+    --hero-giant: clamp(35.6px, 5.6vw, 111.1px);
+  }
+}
+/* Each `.hw` is now one clause (script §12's `cjkUnits`), and this is what
+   makes that mean anything: without it the browser still breaks inside the
+   clause and the split buys nothing. Together they leave the comma as the
+   only place the banner can turn. */
+html[lang="zh-Hant"] .hero-v3__title .hw { white-space: nowrap; }
+/* …and because a clause may no longer break, it has to be able to FIT. The
+   32px floor above is sized for a 375 phone; on a 320 the longest clause
+   (ten glyphs) runs 320 into 280 of content and, unable to wrap, simply
+   overhangs the margin. Below 375 the size therefore comes from that
+   clause rather than from the floor: ten glyphs plus a little air. */
+@media (max-width: 374px) {
+  html[lang="zh-Hant"] {
+    --hero-giant: calc((100vw - 2 * var(--gm-mob)) / 10.4);
+  }
+}

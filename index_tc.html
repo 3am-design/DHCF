@@ -1,5 +1,8 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<!-- `lp-boot` is in the markup, not added by script: it is in force from the
+     first byte the parser sees, so there is no window at all in which the
+     banner or the logo could be painted before the intro takes over. -->
+<html lang="zh-Hant" class="lp-boot">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,21 +10,30 @@
        of sampling page content (which flips between peach hero and white nav as
        you scroll). Keeps top + bottom chrome consistently white. -->
   <meta name="theme-color" content="#ffffff" />
-  <title>陳廷驊基金會 The D. H. Chen Foundation</title>
+  <title>陳廷驊基金會</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Fira+Sans:wght@300;400;500&family=Noto+Serif+TC:wght@400;500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=4.2" />
+  <!-- Shared base (reset, tokens, nav shell, mobile menu, search, cursor) -->
+  <link rel="stylesheet" href="style.css?v=7.7" />
+  <!-- Home V3 — Figma "R2 / OPT2_01_Home_01_Desktop" -->
+  <link rel="stylesheet" href="style-home.css?v=7.7" />
+  <!-- …and released again for anyone without JS, who never gets the intro. -->
+  <noscript><style>
+    html.lp-boot .nav__logo, html.lp-boot .nav__menu, html.lp-boot .nav__actions,
+    html.lp-boot .hero-v3__title, html.lp-boot .hero-v3__foot { opacity: 1; }
+    html.lp-boot .colourbar--hero { clip-path: none; }
+  </style></noscript>
 </head>
-<body>
+<body class="home-v3">
 
   <!-- ============================================================
-       00 — NAVIGATION
+       00 — NAVIGATION   (V3: search left · logo centred · stacked menu right)
        ============================================================ -->
-  <header class="nav" id="nav">
+  <header class="nav nav--v3" id="nav">
     <div class="nav__inner">
 
-      <a href="#" class="nav__logo" aria-label="D. H. Chen Foundation home">
+      <a href="index_tc.html" class="nav__logo" aria-label="陳廷驊基金會">
         <img src="assets/icons/logo-nav.png" alt="D. H. Chen Foundation" class="nav__logo-img" />
       </a>
 
@@ -33,21 +45,39 @@
       </nav>
 
       <div class="nav__actions">
-        <a href="index.html" class="nav__lang">EN</a>
+        <!-- sticky bar only: the seal joins search + hamburger inside the
+             white pill (Figma R2 "stick" / node 12014-44) -->
+        <a href="index_tc.html" class="nav__seal" aria-label="陳廷驊基金會">
+          <img src="assets/icons/logo-seal.svg" alt="" />
+        </a>
         <button class="nav__search-btn" aria-label="Search">
           <img src="assets/icons/icon-search.svg" alt="" />
         </button>
+        <a href="index.html" class="nav__lang">EN</a>
         <button class="nav__hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
           <img src="assets/icons/icon-hamburger.svg" alt="" />
         </button>
       </div>
     </div>
 
-    <!-- Desktop mega-menu (opens on hover; closes when the cursor leaves the nav) -->
+    <!-- Desktop mega-menu — R2 "02_Menu" (nodes 12036-2 / 12036-585 / 12037-628):
+         a 530 × 724 white panel grows out of the top-right corner, *behind*
+         the stacked menu above, so the section links read straight off the
+         white. Sub-links sit to their left; the line-art fills the bottom.
+         No section label any more — the orange link + dot is the label.
+
+         Stuck (nodes 12058-8 / 12058-319) the bar is only the pill, so the
+         panel drops below it and carries its own copy of the four sections —
+         `.nav__mega-menu`, hidden until then. -->
     <div class="nav__mega" id="nav-mega" aria-hidden="true">
+      <div class="nav__mega-menu">
+        <a href="#" class="nav__link" data-mega="work">我們的工作</a>
+        <a href="Listing_tc.html" class="nav__link" data-mega="impact">影響與成果</a>
+        <a href="#" class="nav__link" data-mega="about">關於我們</a>
+        <a href="#" class="nav__link">聯繫我們</a>
+      </div>
       <div class="nav__mega-panel" data-mega-panel="work">
-        <span class="nav__mega-label">我們的工作</span>
-        <img class="nav__mega-art" src="assets/images/menu-work.svg" alt="" aria-hidden="true" />
+        <img class="nav__mega-art" src="assets/images/menu-work-v3.svg" alt="" aria-hidden="true" />
         <ul class="nav__mega-links">
           <li><a href="#">概覽</a></li>
           <li><a href="#">工作方式</a></li>
@@ -57,7 +87,6 @@
         </ul>
       </div>
       <div class="nav__mega-panel" data-mega-panel="impact">
-        <span class="nav__mega-label">影響與成果</span>
         <img class="nav__mega-art" src="assets/images/menu-impact.svg" alt="" aria-hidden="true" />
         <ul class="nav__mega-links">
           <li><a href="#">概覽</a></li>
@@ -67,8 +96,7 @@
         </ul>
       </div>
       <div class="nav__mega-panel" data-mega-panel="about">
-        <span class="nav__mega-label">關於我們</span>
-        <img class="nav__mega-art" src="assets/images/menu-about.svg" alt="" aria-hidden="true" />
+        <img class="nav__mega-art" src="assets/images/menu-about-v3.svg" alt="" aria-hidden="true" />
         <ul class="nav__mega-links">
           <li><a href="#">概覽</a></li>
           <li><a href="#">基金會源起</a></li>
@@ -167,518 +195,377 @@
   <main>
 
     <!-- ============================================================
-         01 — HERO
+         01 — LANDING  (hero + the four B panels sit on the flat peach canvas)
          ============================================================ -->
-    <section class="hero" id="hero" aria-label="Hero">
+    <div class="landing" id="landing">
 
-      <!-- Background blobs -->
-      <div class="hero__blob hero__blob--white-top"    aria-hidden="true"></div>
-      <div class="hero__blob hero__blob--orange-left"  aria-hidden="true"></div>
-      <div class="hero__blob hero__blob--white-right"  aria-hidden="true"></div>
-
-      <!-- 3D flying photos (script populates; falls back to the static set) -->
-      <div class="hero__scene" id="hero-scene" aria-hidden="true"></div>
-      <div class="hero__fog" aria-hidden="true"></div>
-
-      <!-- Scattered photos — static fallback (hidden when the 3D scene runs) -->
-      <div class="hero__photos" aria-hidden="true">
-        <div class="hero__photo hero__photo--1"><img src="assets/images/Rectangle%20119.png" alt="" /></div>
-        <div class="hero__photo hero__photo--2"><img src="assets/images/Rectangle%20124.png" alt="" /></div>
-        <div class="hero__photo hero__photo--3"><img src="assets/images/Rectangle%20162.png" alt="" /></div>
-        <div class="hero__photo hero__photo--4"><img src="assets/images/Rectangle%20166.png" alt="" /></div>
-        <div class="hero__photo hero__photo--5"><img src="assets/images/Rectangle%20171.png" alt="" /></div>
-        <div class="hero__photo hero__photo--6"><img src="assets/images/Rectangle%20175.png" alt="" /></div>
-        <div class="hero__photo hero__photo--7"><img src="assets/images/Rectangle%20180.png" alt="" /></div>
-        <div class="hero__photo hero__photo--8"><img src="assets/images/Rectangle%20183.png" alt="" /></div>
-      </div>
-
-      <!-- Orange decorative dots -->
-      <div class="hero__dot hero__dot--1" aria-hidden="true"></div>
-      <div class="hero__dot hero__dot--2" aria-hidden="true"></div>
-      <div class="hero__dot hero__dot--3" aria-hidden="true"></div>
-      <div class="hero__dot hero__dot--4" aria-hidden="true"></div>
-
-      <!-- Headline — centred in the upper portion -->
-      <div class="hero__headline-wrap">
-        <h1 class="hero__headline">
-          以價值為本，與夥伴同行，<br />
-          將<span class="text-orange">慈悲</span>化作行動，<br />
-          共建更有溫度的社會。
+      <!-- ── Hero ──────────────────────────────────────────────── -->
+      <section class="hero-v3" id="hero" aria-label="Hero">
+        <h1 class="hero-v3__title">
+          <!-- The whole second line is the accent, so the class sits on the
+               line itself rather than on a word inside it — script §12's
+               splitter carries the flag down to every clause it makes, so
+               the colour survives the regroup into rendered lines. -->
+          <span class="hero-v3__line">以價值為本，與夥伴同行，</span>
+          <span class="hero-v3__line hero-v3__accent">將慈悲化作行動，共建更有溫度的社會。</span>
         </h1>
-      </div>
 
-      <!-- Logo mark + description — anchored near the bottom -->
-      <div class="hero__bottom">
-        <div class="hero__logomark">
-          <img src="assets/icons/logo-hero.svg" alt="D. H. Chen Foundation" />
+        <!-- description far left · #Compassion in Action lockup far right -->
+        <div class="hero-v3__foot">
+          <p class="hero-v3__body">
+            陳廷驊基金會以慈悲為本，透過項目推動、夥伴協作與行業知識分享，回應不斷轉變的社會需要，推動更具同理與韌性的改變。
+          </p>
+          <img src="assets/images/logo-footer-compassion.svg" alt="#Compassion in Action 慈之以行" class="hero-v3__mark" />
         </div>
-        <p class="hero__description">
-          陳廷驊基金會以慈悲為本，透過項目推動、夥伴協作與行業知識分享，回應不斷轉變的社會需要，推動更具同理與韌性的改變。
+
+        <!-- thick colour bar closing the banner. It sits exactly on the fold,
+             where the scroll observers can never see it, so the landing intro
+             (script §13) plays it by hand once the copy has landed. -->
+        <div class="colourbar colourbar--hero" data-motion="bar" data-play="manual" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+      </section>
+
+      <!-- ── Intro line ────────────────────────────────────────── -->
+      <div class="wrap">
+        <p class="intro-v3">
+          我們是一個植根香港的家族慈善信託，秉持慈悲精神，與不同夥伴並肩同行，回應社會持續變化的需要。
         </p>
       </div>
 
-    </section>
+      <!-- ── Being → Becoming → Belonging → Bettering ───────────── -->
+      <div class="journey wrap" id="journey">
 
-    <!-- Scroll indicator — sits across the hero/intro boundary (Figma) -->
-    <div class="hero__scroll" aria-hidden="true">
-      <div class="hero__scroll-dot"></div>
-      <div class="hero__scroll-line"></div>
-    </div>
-
-    <!-- Ambient background glows (Figma page-level blurs), anchored at
-         the hero/intro boundary and painted beneath every section -->
-    <div class="bg-blurs" aria-hidden="true">
-      <img src="assets/images/blur_01.png" alt="" class="bg-blur bg-blur--1" />
-      <img src="assets/images/blur_04.png" alt="" class="bg-blur bg-blur--2" />
-      <img src="assets/images/blur_03.png" alt="" class="bg-blur bg-blur--3" />
-      <img src="assets/images/blur_02.png" alt="" class="bg-blur bg-blur--4" />
-    </div>
-
-
-    <!-- ============================================================
-         02 — INTRO  (Our Foundation + The Challenge)
-         ============================================================ -->
-    <section class="intro" id="intro">
-
-      <!-- ── Our Foundation ──────────────────────────────────────────
-           Grid areas: desktop  label|headline / bullets|video
-                       mobile   label → headline → bullets → video  -->
-      <div class="intro__foundation">
-
-        <p class="label intro__label">關於基金會</p>
-
-        <h2 class="intro__foundation-headline">
-          我們是一個植根香港的家族慈善信託，秉持慈悲精神，與不同夥伴並肩同行，回應社會持續變化的需要。
-        </h2>
-
-        <ul class="bullet-list intro__bullets">
-          <li class="bullet-list__item">於 1970 年成立的家族慈善信託</li>
-          <li class="bullet-list__item">以慈悲為核心價值</li>
-          <li class="bullet-list__item">透過旗下機構、項目計劃與夥伴協作推動改變</li>
-        </ul>
-
-        <div class="intro__video">
-          <img src="assets/images/video-thumbnail.png" alt="基金會影片" class="intro__video-thumb" />
-          <button class="intro__play-btn" aria-label="播放影片">
-            <img src="assets/icons/icon-play.svg" alt="" />
-          </button>
-        </div>
-
-      </div>
-
-      <!-- ── The Challenge ────────────────────────────────────────────
-           Flattened children so mobile can re-order:
-           label → headline → circles → body → button (Figma mobile)  -->
-      <div class="challenge">
-
-        <!-- Left text — wrapped so it can be vertically centred against the
-             circles; on mobile the wrapper is display:contents so the items
-             re-flow into the grid order label → headline → circles → body → btn -->
-        <div class="challenge__text">
-          <p class="label challenge__label">我們看見的挑戰</p>
-          <h2 class="challenge__headline">
-            今天許多社會挑戰，往往源於人與人、人與社會，以至內在自我的疏離。
-          </h2>
-          <p class="challenge__body">
-            無論在個人、社群，或社會創效領域之中，我們都看見重新建立連結、信任與改變條件的迫切需要。
-          </p>
-          <a href="#" class="btn-circle challenge__btn">
-            <span class="btn-circle__ring">
-              <img src="assets/icons/icon-arrow.svg" alt="" class="btn-circle__arrow" />
-            </span>
-            <span class="btn-circle__label">了解更多</span>
-          </a>
-        </div>
-
-        <!-- Right: 3 overlapping circles -->
-        <div class="challenge__circles" aria-label="Three areas of disconnection">
-
-          <!-- Figma order: icon (top) → title (centre) → tag (bottom) -->
-          <div class="challenge__circle challenge__circle--1">
-            <div class="challenge__circle-content">
-              <img src="assets/icons/icon-self.svg" alt="" class="challenge__circle-icon" />
-              <h3 class="challenge__circle-title">意義感、希望與內在連結逐漸流失</h3>
-              <p class="challenge__circle-tag">個人內在</p>
-            </div>
+        <!-- 1 — Being -->
+        <section class="panel panel--being">
+          <!-- 點 — scattered dots drifting, then collapsing into the core dot.
+               Positions/sizes/opacities come straight from being-dots.svg. -->
+          <div class="panel__dots dots" data-motion="dots" aria-hidden="true">
+            <span class="dots__dot drift-a" style="--x:0.00%;  --y:22.58%; --s:1.72%; --o:1;  --dl:380ms"></span>
+            <span class="dots__dot drift-b" style="--x:94.42%; --y:44.21%; --s:1.72%; --o:1;  --dl:120ms"></span>
+            <span class="dots__dot drift-c" style="--x:96.35%; --y:0.00%;  --s:2.36%; --o:1;  --dl:640ms"></span>
+            <span class="dots__dot drift-d" style="--x:73.18%; --y:62.95%; --s:1.07%; --o:1;  --dl:240ms"></span>
+            <span class="dots__dot drift-a" style="--x:98.71%; --y:77.60%; --s:1.29%; --o:.3; --dl:820ms"></span>
+            <span class="dots__dot drift-b" style="--x:67.96%; --y:32.43%; --s:1.29%; --o:.1; --dl:60ms"></span>
+            <span class="dots__dot drift-c" style="--x:23.46%; --y:47.83%; --s:1.13%; --o:.5; --dl:500ms"></span>
+            <span class="dots__dot drift-d" style="--x:40.13%; --y:91.29%; --s:1.07%; --o:.6; --dl:700ms"></span>
+            <span class="dots__dot drift-a" style="--x:78.48%; --y:44.20%; --s:1.29%; --o:.3; --dl:300ms"></span>
+            <span class="dots__dot drift-b" style="--x:0.65%;  --y:95.65%; --s:3.88%; --o:.4; --dl:900ms"></span>
+            <span class="dots__dot drift-c" style="--x:87.70%; --y:23.01%; --s:2.59%; --o:.1; --dl:180ms"></span>
+            <span class="dots__dot drift-d" style="--x:44.17%; --y:64.13%; --s:2.59%; --o:.1; --dl:560ms"></span>
+            <span class="dots__dot dots__dot--core" style="--x:50.00%; --y:48.29%; --s:3.86%; --o:1; --dl:0ms"></span>
           </div>
-
-          <div class="challenge__circle challenge__circle--2">
-            <div class="challenge__circle-content">
-              <img src="assets/icons/icon-community.svg" alt="" class="challenge__circle-icon" />
-              <h3 class="challenge__circle-title">社會孤立、支援零散，信任亦逐漸薄弱</h3>
-              <p class="challenge__circle-tag">個人與社會之間</p>
-            </div>
+          <div class="panel__head">
+            <p class="panel__eyebrow">覺察自己是誰</p>
+            <h2 class="panel__title">Being</h2>
           </div>
-
-          <div class="challenge__circle challenge__circle--3">
-            <div class="challenge__circle-content">
-              <img src="assets/icons/icon-crowd.svg" alt="" class="challenge__circle-icon" />
-              <h3 class="challenge__circle-title">有意義的想法，往往難以成長、延續與擴展</h3>
-              <p class="challenge__circle-tag">社會創效領域之中</p>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-    </section>
-
-
-    <!-- ============================================================
-         03 — PILLARS  (Two pillars + Our Approach)
-         ============================================================ -->
-    <section class="pillars" id="pillars">
-
-      <div class="pillars__heading-wrap">
-        <h2 class="pillars__heading">
-          我們的工作，<br />
-          由兩個互相連結的支柱推動
-        </h2>
-      </div>
-
-      <!-- Decorative arc SVG (inline so the stroke can draw on scroll) -->
-      <div class="pillars__arc" aria-hidden="true">
-        <svg viewBox="0 0 2009.85 1150.77" xmlns="http://www.w3.org/2000/svg">
-          <path id="arc-path" d="M1006.15,19.53s610.35-74.55,699.85,71.45-123.58,269.36-788.04,365.7C253.5,553.03.5,618.03.5,892.03s890,299,1193,124c347.92-247.57,303.95,454.15,816-57.89" fill="none" stroke="#ff6d2d" stroke-miterlimit="10"/>
-          <circle id="arc-dot" cx="1006.02" cy="19.78" r="5" fill="#ff6d2d"/>
-        </svg>
-      </div>
-
-      <!-- Two pillar cards -->
-      <div class="pillars__cards">
-
-        <article class="pillar-card pillar-card--issues">
-          <div class="pillar-card__text">
-            <h3 class="pillar-card__title">聚焦社會議題</h3>
-            <p class="pillar-card__body">
-              回應個人內在，以及個人與社會之間的疏離與斷裂。
+          <div class="panel__body">
+            <p class="panel__lede">
+              透過正念與靜觀練習，連結真實的自己
             </p>
-            <ul class="bullet-list bullet-list--sm">
-              <li class="bullet-list__item">正念生活</li>
-              <li class="bullet-list__item">身心安康</li>
-              <li class="bullet-list__item">卓越教育</li>
-            </ul>
-          </div>
-          <div class="pillar-card__illustration" aria-hidden="true">
-            <img src="assets/images/illustration-issues.svg" alt="" data-draw="flower" />
-          </div>
-        </article>
-
-        <article class="pillar-card pillar-card--sector">
-          <div class="pillar-card__text">
-            <h3 class="pillar-card__title">面向創效領域</h3>
-            <p class="pillar-card__body">
-              以慈悲為本的慈善方式，支持早期至中期的社會創效項目成長。
+            <p class="panel__note">
+              這關乎當下的專注、自我覺察、慈悲，以及內在的身心安康。
             </p>
-            <ul class="bullet-list bullet-list--sm">
-              <li class="bullet-list__item">創效策略</li>
-              <li class="bullet-list__item">超越同行</li>
-              <li class="bullet-list__item">D'Ventures</li>
+          </div>
+        </section>
+
+        <!-- 2 — Becoming -->
+        <section class="panel panel--becoming">
+          <!-- 線 — one dot spreads left/right into a line (script fills the dots) -->
+          <div class="panel__dotrow dotrow" data-motion="dotrow" aria-hidden="true"></div>
+          <div class="panel__head">
+            <p class="panel__eyebrow">成為更好的自己</p>
+            <h2 class="panel__title">Becoming</h2>
+          </div>
+          <div class="panel__body">
+            <p class="panel__lede">
+              透過潛能與使命的展現，連結自身的可能性
+            </p>
+            <p class="panel__label">在這裡，人們會發現：</p>
+            <ul class="panel__list">
+              <li>自己的天賦</li>
+              <li>自己的使命</li>
+              <li>自己貢獻社會的能力</li>
             </ul>
+            <p class="panel__note">
+              「可能性」之所以貼切，是因為它連結了此刻的自己與未來的潛能。
+            </p>
           </div>
-          <div class="pillar-card__illustration" aria-hidden="true">
-            <!-- inlined so the strokes can draw on scroll (data-draw="stroke") -->
-            <svg class="illustration-svg" data-draw="stroke" preserveAspectRatio="xMidYMid meet" viewBox="0 0 449 483" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <g clip-path="url(#clip0_0_24)">
-                <g>
-                  <path d="M189.049 257.993C187.018 260.143 191.08 282.428 206.09 295.21C221.1 307.993 231.482 309.465 229.677 314.442C227.872 319.418 198.265 324.133 191.495 328.658C184.723 333.184 173.363 365.462 173.363 361.841C173.363 358.22 187.358 327.3 186.455 323.981C185.553 320.663 178.029 318.249 181.641 317.798C185.254 317.344 191.272 324.133 198.044 322.323C204.816 320.514 225.58 311.614 227.988 312.068C230.396 312.521 239.423 341.028 243.186 340.274C246.947 339.521 276.29 324.889 280.654 325.342C285.018 325.796 298.296 349.512 297.28 355.282C296.265 361.052 252.935 373.949 252.761 380.057C252.59 386.165 267.148 494.425 274.257 480.51C281.366 466.596 264.853 415.54 269.367 412.824C273.882 410.11 282.909 411.768 279.45 406.036C275.989 400.303 263.349 394.724 266.059 392.462C268.767 390.199 283.062 367.274 288.027 375.72C292.992 384.166 314.661 456.265 314.359 444.349C314.057 432.433 298.711 366.823 294.498 365.162C290.285 363.504 251.012 383.564 246.346 379.039C241.68 374.513 235.361 351.437 237.467 348.872C239.574 346.307 273.279 334.844 273.58 331.677C273.882 328.509 267.412 309.656 266.509 290.199C265.607 270.741 270.121 237.107 266.509 233.939C262.897 230.772 258.797 241.935 255.75 250.419C252.703 258.903 245.705 252.228 247.399 255.058C249.091 257.885 258.008 261.279 255.524 247.251C253.04 233.224 244.013 237.296 245.705 238.541C247.397 239.785 266.695 226.662 270.081 228.698C273.467 230.734 269.518 248.607 269.855 255.509C270.194 262.41 274.483 251.437 277.303 244.197C280.124 236.958 287.459 234.809 286.896 227.907C286.333 221.005 283.736 212.41 287.798 205.509C291.861 198.607 306.531 186.88 306.081 184.166C305.629 181.452 286.069 163.35 283.812 163.804C281.554 164.257 273.128 175.758 262.294 180.848C251.459 185.937 222.118 193.971 225.429 198.043C228.739 202.115 246.645 221.421 246.344 218.103C246.042 214.784 230.544 204.98 236.261 197.891C241.98 190.803 280.35 191.405 281.102 185.673C281.853 179.94 273.276 176.622 279.448 172.852C285.616 169.083 306.682 188.387 311.197 189.143C315.711 189.896 333.016 174.059 334.218 169.234C335.422 164.408 302.77 131.828 297.052 132.13C291.333 132.432 274.933 146.006 274.933 151.437C274.933 156.867 279.448 161.543 280.652 160.488C281.856 159.432 367.925 45.1016 365.218 57.3201C362.511 69.5385 313.532 121.121 317.255 128.587C320.98 136.053 355.173 124.853 350.434 132.321C345.693 139.788 330.797 145.896 332.152 151.666C333.507 157.436 337.908 161.508 341.292 160.49C344.678 159.472 422.547 72.5925 448.615 64.1084" stroke="#CCCCCC" stroke-width="3" stroke-miterlimit="10"/>
-                  <path d="M171.33 219.871C172.984 216.402 169.748 214.555 159.14 213.65C148.532 212.745 128.331 209.465 117.723 203.808C107.115 198.151 107.115 200.187 107.115 206.184C107.115 212.181 108.92 242.61 105.986 246.795C103.053 250.981 83.0756 250.189 79.9158 247.927C76.756 245.664 77.5453 189.102 80.9314 187.18C84.3174 185.257 105.76 195.777 103.39 198.153C101.019 200.53 21.9831 167.271 20.0273 167.873C18.0716 168.475 51.4748 184.164 52.3798 189.594C53.2822 195.024 46.3618 197.287 49.6724 200.454C52.9831 203.621 67.2765 198.191 64.8708 204.375C62.4626 210.558 53.8855 210.861 55.8413 214.63C57.797 218.4 75.1019 235.897 72.392 236.502C69.6847 237.104 -4.94965 220.514 1.66915 226.849C8.29047 233.183 77.0551 240.876 101.431 240.123C125.807 239.37 140.503 254.576 143.112 253.095C147.627 250.53 169.633 222.25 171.438 222.928" stroke="#CCCCCC" stroke-width="3" stroke-miterlimit="10"/>
-                  <path d="M77.7464 468.526C83.8398 465.132 116.68 390.131 119.729 390.131C122.778 390.131 163.63 410.607 164.985 412.869C166.34 415.132 139.48 485.041 138.578 475.992C137.675 466.941 151.745 437.304 149.487 430.518C147.23 423.73 110.064 430.971 115.33 425.088C120.596 419.207 153.248 427.048 150.239 420.562C147.23 414.076 120.596 400.2 125.712 399.446C130.828 398.693 163.63 416.641 167.843 414.379C172.056 412.116 188.909 379.538 188.308 377.275C187.707 375.012 145.573 351.331 136.996 350.578C128.419 349.824 113.296 384.93 116.909 386.512C120.521 388.097 147.041 346.355 155.618 328.028C164.196 309.702 163.482 307.59 176.873 303.972C190.263 300.351 199.856 296.014 198.617 294.772C197.377 293.53 166.453 305.406 156.521 306.65C146.589 307.895 145.686 307.215 143.429 309.591C141.172 311.967 131.016 322.827 129.209 322.374C127.404 321.92 107.992 300.202 103.251 299.184C98.5103 298.166 72.2161 311.176 73.571 312.307C74.9259 313.439 111.265 332.443 107.653 346.697C104.041 360.952 32.267 405.862 36.103 400.205C39.939 394.548 71.5399 374.412 74.4734 367.4C77.407 360.387 63.1891 360.16 66.3489 355.635C69.5087 351.109 82.3743 347.264 75.6021 343.417C68.83 339.571 10.8244 365.815 13.3055 359.027C15.7891 352.238 72.9727 321.822 77.5579 319.66C82.143 317.498 110.061 343.943 113.07 350.58C116.079 357.217 111.265 360.082 113.07 358.424C114.875 356.766 132.932 333.085 131.727 330.218C130.523 327.353 104.641 307.442 105.094 303.974C105.546 300.505 118.937 296.433 131.426 279.842C143.914 263.252 144.367 255.559 155.05 245.001C165.734 234.443 167.463 232.896 169.045 231.314C170.626 229.729 175.138 232.559 171.415 241.494C167.69 250.431 157.421 260.838 159.002 257.784C160.583 254.73 173.109 249.073 173.954 249.242" stroke="#CCCCCC" stroke-width="3" stroke-miterlimit="10"/>
-                </g>
-                <path d="M171.443 222.925C173.248 223.603 177.086 232.314 177.762 246.455C178.439 260.596 176.973 259.465 185.211 267.158C193.448 274.851 191.078 255.846 189.047 257.996" stroke="#CCCCCC" stroke-width="4" stroke-miterlimit="10"/>
-                <path d="M175.11 247.982C175.958 248.151 174.716 255.204 174.565 260.18C174.414 265.157 181.186 262.594 183.142 256.26C185.098 249.925 183.142 231.067 187.355 229.636C191.568 228.204 220.308 271.116 226.178 269.42C232.045 267.725 208.574 235.711 209.25 234.466C209.926 233.221 238.48 267.047 242.993 261.841C247.507 256.638 213.312 227.564 217.714 225.869C222.116 224.173 243.106 254.037 248.297 250.643C253.488 247.249 224.071 221.721 226.027 219.609C227.983 217.498 245.466 236.502 248.913 232.279C252.359 228.056 220.761 196.458 204.962 187.633C189.162 178.809 181.714 165.008 177.652 160.709C173.59 156.411 151.694 173.379 144.699 172.474C137.703 171.57 100.911 137.406 102.266 131.976C103.621 126.546 140.184 109.578 139.96 101.658C139.734 93.7385 79.9208 -3.32108 80.3733 1.43124C80.8258 6.18355 97.3011 49.1686 96.8512 58.4464C96.3987 67.7217 83.7594 71.3427 87.5979 72.9251C91.434 74.51 113.103 71.5669 107.912 77.2239C102.721 82.8808 88.4551 82.2004 91.6376 88.0841C94.82 93.9653 114.005 103.47 111.522 109.351C109.038 115.232 52.3848 57.0883 48.775 52.7895C45.1627 48.4907 97.9799 125.642 101.59 124.737C105.202 123.832 140.863 97.813 145.377 96.0038C149.892 94.1946 179.384 145.702 177.881 150.378C176.375 155.055 173.818 156.411 172.313 155.355C170.807 154.299 145.83 111.012 145.83 118.1C145.83 125.188 166.895 150.529 165.691 154.299C164.487 158.069 163.886 161.841 158.62 160.634C153.354 159.427 129.427 117.044 129.427 123.681C129.427 130.318 153.653 159.729 152.75 162.745C151.848 165.762 154.256 168.176 147.786 166.969C141.315 165.762 113.779 127.451 114.983 132.579C116.187 137.706 149.14 171.945 157.567 181.75C165.993 191.554 169.681 223.341 171.335 219.871" stroke="#FF6900" stroke-width="3" stroke-miterlimit="10"/>
-              </g>
-              <defs><clipPath id="clip0_0_24"><rect width="449" height="483" fill="white"/></clipPath></defs>
-            </svg>
+        </section>
+
+        <!-- 3 — Belonging -->
+        <section class="panel panel--belonging">
+          <!-- 面 — the line spreads up/down into a plane (script fills the rules) -->
+          <div class="panel__lines lines" data-motion="lines" aria-hidden="true"></div>
+          <div class="panel__head">
+            <p class="panel__eyebrow">明白自己是更大整體的一部分</p>
+            <h2 class="panel__title">Belonging</h2>
           </div>
-        </article>
+          <div class="panel__body">
+            <p class="panel__lede">
+              透過更緊密的社會連結，連結自己與社群
+            </p>
+            <p class="panel__note">
+              慈悲在這裡超越個人，成為人與人之間的連結。
+            </p>
+            <p class="panel__question">
+              <strong>於是問題變成</strong>
+              當一群安住當下、懷抱使命、彼此連結的人決定一起創造改變，會發生甚麼事？
+            </p>
+            <p class="panel__note">答案自然地引向社會創新。</p>
+          </div>
+        </section>
+
+        <!-- 4 — Bettering -->
+        <section class="panel panel--bettering">
+          <div class="panel__photo" aria-hidden="true">
+            <img src="assets/images/bettering-photo.png" alt="" />
+          </div>
+          <div class="panel__head">
+            <p class="panel__crumbs">
+              <span>Being</span><span>Becoming</span><span>Belonging</span>
+            </p>
+            <h2 class="panel__title">Bettering</h2>
+          </div>
+          <div class="panel__body">
+            <p class="panel__lede">攜手共建更美好的世界</p>
+            <ul class="panel__bullets">
+              <li>以資金與概念驗證資源，支持社會創新者</li>
+              <li>降低社會創效項目的入場門檻</li>
+              <li>推動項目邁向預期目標，締造持久影響</li>
+            </ul>
+            <p class="panel__note">
+              這與基金會的理念格外契合，因為它著眼於社會的改善，而非商業上的成功。
+            </p>
+          </div>
+        </section>
 
       </div>
-
-      <!-- Our Approach -->
-      <div class="approach">
-        <p class="label label--center">我們的工作方式</p>
-
-        <!-- 5 staggered cards: 3 orange top row, 2 white bottom row -->
-        <div class="approach__cards">
-
-          <!-- Row 1 — orange, rotated -->
-          <div class="approach-card approach-card--orange approach-card--1">
-            <h3 class="approach-card__title">深入聆聽</h3>
-            <p class="approach-card__body">我們由聆聽開始，理解人、社群，以及新興社會需要背後的真實處境。</p>
-          </div>
-
-          <div class="approach-card approach-card--orange approach-card--2">
-            <h3 class="approach-card__title">與夥伴共創</h3>
-            <p class="approach-card__body">我們與理念相近的夥伴同行，一起構思貼地、切合需要，並充滿同理心的回應。</p>
-          </div>
-
-          <div class="approach-card approach-card--orange approach-card--3">
-            <h3 class="approach-card__title">支持並鞏固</h3>
-            <p class="approach-card__body">我們連結資源、知識與網絡，讓有意義的項目能夠更穩健地成長。</p>
-          </div>
-
-          <!-- Decorative bubbles + dots (positions from Figma) -->
-          <div class="approach__bubbles" aria-hidden="true">
-            <div class="pillar-bubble pillar-bubble--1"><img src="assets/images/bubble-1.png" alt="" /></div>
-            <div class="pillar-bubble pillar-bubble--2"><img src="assets/images/bubble-2.png" alt="" /></div>
-            <div class="pillar-bubble pillar-bubble--3"><img src="assets/images/bubble-3.png" alt="" /></div>
-            <div class="pillar-bubble pillar-bubble--4"><img src="assets/images/bubble-4.png" alt="" /></div>
-            <div class="pillar-bubble pillar-bubble--5"><img src="assets/images/bubble-5.png" alt="" /></div>
-            <div class="approach-dot approach-dot--orange approach-dot--1"></div>
-            <div class="approach-dot approach-dot--orange approach-dot--2"></div>
-            <div class="approach-dot approach-dot--orange approach-dot--3"></div>
-            <div class="approach-dot approach-dot--orange approach-dot--4"></div>
-            <div class="approach-dot approach-dot--white approach-dot--5"></div>
-            <div class="approach-dot approach-dot--white approach-dot--6"></div>
-          </div>
-
-          <!-- Row 2 — white, orange titles -->
-          <div class="approach-card approach-card--white approach-card--4">
-            <div class="approach-card__icon"><img src="assets/icons/icon-check.svg" alt="" /></div>
-            <h3 class="approach-card__title approach-card__title--orange">從實踐中學習</h3>
-            <p class="approach-card__body approach-card__body--dark">我們相信邊做邊學，將經驗、反思，甚至挑戰，轉化成可被分享的洞察。</p>
-          </div>
-
-          <div class="approach-card approach-card--white approach-card--5">
-            <div class="approach-card__icon"><img src="assets/icons/icon-check.svg" alt="" /></div>
-            <h3 class="approach-card__title approach-card__title--orange">分享知識，擴闊影響</h3>
-            <p class="approach-card__body approach-card__body--dark">我們讓學習被看見，讓以慈悲為本的實踐，啟發行業內更廣泛的改變。</p>
-          </div>
-
-        </div>
-
-        <div class="approach__cta">
-          <a href="#" class="btn-circle">
-            <span class="btn-circle__ring">
-              <img src="assets/icons/icon-arrow.svg" alt="" class="btn-circle__arrow" />
-            </span>
-            <span class="btn-circle__label">了解更多</span>
-          </a>
-        </div>
-      </div>
-
-    </section>
+    </div>
 
 
     <!-- ============================================================
          04 — NEWS
          ============================================================ -->
-    <section class="news" id="news">
+    <section class="news-v3" id="news">
+      <div class="wrap">
 
-      <h2 class="news__heading">
-        慈悲不只是一種價值，<br />
-        更是我們實踐工作的方式。
-      </h2>
+        <div class="news-v3__head">
+          <!-- the last word retypes itself through data-words (pipe-separated);
+               without JS it just stays on "working" -->
+          <h2 class="news-v3__heading">
+            慈悲不只是一種價值，<br />
+            更是我們 <span class="news-v3__accent typer"
+                                 data-typer
+                                 data-words="Working|Being|Becoming|Belonging|Bettering"
+                                 aria-live="off">Working</span> 的方式
+          </h2>
 
-      <div class="news__filters" role="tablist" aria-label="Filter news by category">
-        <button class="news__filter news__filter--active" role="tab" aria-selected="true"  data-filter="all">全部</button>
-        <button class="news__filter" role="tab" aria-selected="false" data-filter="learning">學習</button>
-        <button class="news__filter" role="tab" aria-selected="false" data-filter="stories">故事</button>
-        <button class="news__filter" role="tab" aria-selected="false" data-filter="news">最新消息</button>
-      </div>
+          <div class="news-v3__filters" role="tablist" aria-label="Filter news by category">
+            <button class="news-v3__filter news-v3__filter--active" role="tab" aria-selected="true"  data-filter="all">全部</button>
+            <button class="news-v3__filter" role="tab" aria-selected="false" data-filter="learning">學習</button>
+            <button class="news-v3__filter" role="tab" aria-selected="false" data-filter="stories">故事</button>
+            <button class="news-v3__filter" role="tab" aria-selected="false" data-filter="news">最新消息</button>
+          </div>
+        </div>
 
-      <!-- Carousel: side cards bleed off the edges -->
-      <div class="news__carousel-wrap" id="news-carousel-wrap">
-        <div class="news__carousel" id="news-carousel">
+        <div class="news-v3__grid">
 
-          <article class="news-card news-card--1" data-category="learning">
-            <div class="news-card__image">
-              <img src="assets/images/news-1.png?v=2" alt="陳廷驊基金會獎學金計劃" />
+          <article class="card-v3" data-category="stories">
+            <div class="card-v3__image">
+              <img src="assets/images/card-1.png" alt="社區創變者 Fellowship" />
             </div>
-            <div class="news-card__body">
-              <h3 class="news-card__title">陳廷驊基金會獎學金計劃</h3>
-              <p class="news-card__description">投資今天，成就明天的影響</p>
-              <p class="news-card__category">卓越教育</p>
-              <ul class="news-card__tags">
-                <li class="news-card__tag">能力建設</li>
-                <li class="news-card__tag">教育</li>
+            <div class="card-v3__body">
+              <h3 class="card-v3__title">社區創變者 Fellowship</h3>
+              <p class="card-v3__desc">培育創變者，推動更共融的社會</p>
+              <p class="card-v3__cat">超越同行學院</p>
+              <ul class="card-v3__tags">
+                <li>能力建設</li>
+                <li>聚焦社會議題</li>
+                <li>身心安康</li>
               </ul>
             </div>
           </article>
 
-          <article class="news-card news-card--2" data-category="stories">
-            <div class="news-card__image">
-              <img src="assets/images/news-2.png?v=2" alt="社區創變者 Fellowship" />
+          <article class="card-v3" data-category="learning">
+            <div class="card-v3__image">
+              <img src="assets/images/card-2.jpg" alt="未來教育實踐" />
             </div>
-            <div class="news-card__body">
-              <h3 class="news-card__title">社區創變者 Fellowship</h3>
-              <p class="news-card__description">培育創變者，推動更共融的社會</p>
-              <p class="news-card__category">超越同行學院</p>
-              <ul class="news-card__tags">
-                <li class="news-card__tag">能力建設</li>
-                <li class="news-card__tag">聚焦社會議題</li>
+            <div class="card-v3__body">
+              <h3 class="card-v3__title">未來教育實踐</h3>
+              <p class="card-v3__desc">跨界協作，裝備面對真實世界的能力</p>
+              <p class="card-v3__cat">卓越教育</p>
+              <ul class="card-v3__tags">
+                <li>能力建設</li>
+                <li>聚焦社會議題</li>
               </ul>
             </div>
           </article>
 
-          <article class="news-card news-card--3" data-category="news">
-            <div class="news-card__image">
-              <img src="assets/images/news-3.png?v=2" alt="未來教育實踐 2.0" />
+          <article class="card-v3" data-category="news">
+            <div class="card-v3__image">
+              <img src="assets/images/card-3.jpg" alt="Co&rsquo;asis" />
             </div>
-            <div class="news-card__body">
-              <h3 class="news-card__title">未來教育實踐 2.0</h3>
-              <p class="news-card__description">透過跨界協作，推動以價值為本的生命探索教育</p>
-              <p class="news-card__category">卓越教育</p>
-              <ul class="news-card__tags">
-                <li class="news-card__tag">能力建設</li>
-                <li class="news-card__tag">教育</li>
+            <div class="card-v3__body">
+              <h3 class="card-v3__title">Co&rsquo;asis</h3>
+              <p class="card-v3__desc">建立由同儕推動的社會創效連結加速器</p>
+              <p class="card-v3__cat">創效策略</p>
+              <ul class="card-v3__tags">
+                <li>聚焦社會議題</li>
+                <li>身心安康</li>
               </ul>
             </div>
           </article>
 
-          <article class="news-card news-card--4" data-category="news">
-            <div class="news-card__image">
-              <img src="assets/images/news-4.png" alt="青年 ImpACT 獎" />
+          <article class="card-v3" data-category="stories">
+            <div class="card-v3__image">
+              <img src="assets/images/card-4.jpg" alt="Supportive Net Weaver 2.0" />
             </div>
-            <div class="news-card__body">
-              <h3 class="news-card__title">青年 ImpACT 獎</h3>
-              <p class="news-card__description">一個鼓勵青年推動社會創新、培養慈悲精神的重要獎項</p>
-              <p class="news-card__category">卓越教育</p>
-              <ul class="news-card__tags">
-                <li class="news-card__tag">能力建設</li>
-                <li class="news-card__tag">教育</li>
-              </ul>
-            </div>
-          </article>
-
-          <article class="news-card news-card--5" data-category="stories">
-            <div class="news-card__image">
-              <img src="assets/images/news-5.png" alt="慈悲創效社群" />
-            </div>
-            <div class="news-card__body">
-              <h3 class="news-card__title">慈悲創效社群</h3>
-              <p class="news-card__description">連結社會創效社群，讓同行者走得更近</p>
-              <p class="news-card__category">正念生活</p>
-              <ul class="news-card__tags">
-                <li class="news-card__tag">能力建設</li>
-                <li class="news-card__tag">聚焦社會議題</li>
-              </ul>
-            </div>
-          </article>
-
-          <article class="news-card news-card--6" data-category="learning">
-            <div class="news-card__image">
-              <img src="assets/images/news-6.png" alt="慈悲兒童計劃" />
-            </div>
-            <div class="news-card__body">
-              <h3 class="news-card__title">慈悲兒童計劃</h3>
-              <p class="news-card__description">將慈悲價值帶入校本課程</p>
-              <p class="news-card__category">正念生活</p>
-              <ul class="news-card__tags">
-                <li class="news-card__tag">正念生活</li>
-                <li class="news-card__tag">教育</li>
-              </ul>
-            </div>
-          </article>
-
-          <article class="news-card news-card--7" data-category="stories">
-            <div class="news-card__image">
-              <img src="assets/images/news-7.png" alt="金齡同行之路" />
-            </div>
-            <div class="news-card__body">
-              <h3 class="news-card__title">金齡同行之路</h3>
-              <p class="news-card__description">透過運動與自我重尋，支持照顧者的身心安康</p>
-              <p class="news-card__category">身心安康</p>
-              <ul class="news-card__tags">
-                <li class="news-card__tag">身心安康</li>
-                <li class="news-card__tag">聚焦社會議題</li>
-              </ul>
-            </div>
-          </article>
-
-          <article class="news-card news-card--8" data-category="news">
-            <div class="news-card__image">
-              <img src="assets/images/news-8.png" alt="腦健社區計劃" />
-            </div>
-            <div class="news-card__body">
-              <h3 class="news-card__title">腦健社區計劃</h3>
-              <p class="news-card__description">透過便利的篩查與社區支援，改善認知障礙照護</p>
-              <p class="news-card__category">超越同行</p>
-              <ul class="news-card__tags">
-                <li class="news-card__tag">身心安康</li>
-                <li class="news-card__tag">聚焦社會議題</li>
+            <div class="card-v3__body">
+              <h3 class="card-v3__title">織網者 2.0</h3>
+              <p class="card-v3__desc">透過學習心理急救，提升青年的精神健康</p>
+              <p class="card-v3__cat">身心安康</p>
+              <ul class="card-v3__tags">
+                <li>能力建設</li>
+                <li>身心安康</li>
               </ul>
             </div>
           </article>
 
         </div>
-      </div>
 
-      <div class="news__cta">
-        <a href="Listing_tc.html" class="btn-circle">
-          <span class="btn-circle__ring">
-            <img src="assets/icons/icon-arrow.svg" alt="" class="btn-circle__arrow" />
-          </span>
-          <span class="btn-circle__label">閱讀更多</span>
-        </a>
-      </div>
+        <div class="news-v3__cta">
+          <a href="Listing_tc.html" class="btn-pill">
+            閱讀更多
+            <span class="btn-pill__arrow" aria-hidden="true"></span>
+          </a>
+        </div>
 
+      </div>
+    </section>
+
+
+    <!-- ============================================================
+         06 — VENTURES · SCHOLARSHIP · FUNDING
+         ============================================================ -->
+    <section class="ventures" id="ventures">
+      <div class="wrap">
+
+        <div class="ventures__grid">
+
+          <div class="ventures__col">
+            <div class="ventures__logos">
+              <img src="assets/images/dventures-word.svg" alt="D&rsquo;Ventures" />
+              <img src="assets/images/dhub.svg" alt="D&rsquo;Hub" class="is-dhub" />
+            </div>
+            <p class="ventures__text">
+              基金會以先行者的角色創立 D&rsquo;Ventures，構建一個以使命為本的生態圈，讓本地社會創效社群得以成長茁壯。基金會在九龍核心地帶的 D&rsquo;Hub 提供共享服務、共學社群與綜合工作空間，匯聚推動可持續影響所需的服務與場地，將慈悲化作行動。
+            </p>
+            <a href="#" class="btn-pill">
+              探索
+              <span class="btn-pill__arrow" aria-hidden="true"></span>
+            </a>
+          </div>
+
+          <div class="ventures__col">
+            <h2 class="ventures__title">
+              <img src="assets/icons/logo-seal.svg" alt="" aria-hidden="true" class="ventures__seal" />
+              獎學金
+            </h2>
+            <p class="ventures__text">
+              基金會深信教育足以帶來改變，因此於 2015 年成立並推出全新的<a href="http://www.dhcfscholarship.com/" target="_blank" rel="noopener">陳廷驊基金會獎學金計劃</a>（「獎學金計劃」）。這項里程碑式的計劃投資於才德兼備的學生，讓他們以學識與服務社會的人文精神，共同締造更美好的明天。
+            </p>
+            <a href="#" class="btn-pill">
+              探索
+              <span class="btn-pill__arrow" aria-hidden="true"></span>
+            </a>
+          </div>
+
+        </div>
+
+        <hr class="ventures__rule" />
+
+        <div class="funding">
+          <div class="funding__col">
+            <img src="assets/images/logo-funding.svg" alt="The D. H. Chen Foundation" class="funding__logo" />
+            <p class="funding__text">
+              我們全年接受捐款申請。有意申請者請填妥相關的捐款申請表格、上載所需文件，並預留充足時間以供審核。
+            </p>
+            <a href="#" class="btn-pill">
+              資助申請
+              <span class="btn-pill__arrow" aria-hidden="true"></span>
+            </a>
+          </div>
+          <div class="funding__photo">
+            <img src="assets/images/funding-photo.png" alt="" />
+          </div>
+        </div>
+
+      </div>
     </section>
 
   </main>
 
 
   <!-- ============================================================
-       05 — FOOTER
+       07 — COLOUR BAR
        ============================================================ -->
-  <footer class="footer" id="footer">
-
-    <!-- Decorative wave line — starts at the end of Pillars, sweeps through
-         News into the Footer (Figma "Vector 2"). Inlined as SVG so the path
-         can be stroke-animated on scroll later (stroke-dasharray/offset).  -->
-    <div class="footer__wave" aria-hidden="true">
-      <svg preserveAspectRatio="none" viewBox="0 0 2228.87 1555.14" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path id="wave-path" d="M2129.03 76.1449C2113.03 68.1449 727.03 -135.855 425.03 164.145C123.03 464.145 787.03 614.145 1975.03 880.145C2925.43 1092.94 896.03 1230.14 818.03 1238.14C740.03 1246.14 619.03 1262.14 704.03 1304.14C789.03 1346.14 1014.43 1523.74 0.029955 1554.14" stroke="#ff6d2d" stroke-width="2"/>
-      </svg>
+  <div class="wrap">
+    <!-- draws itself left → right as it comes into view -->
+    <div class="colourbar" data-motion="bar" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
     </div>
+  </div>
 
-    <div class="footer__gradient" aria-hidden="true"></div>
 
-    <div class="footer__inner">
+  <!-- ============================================================
+       08 — FOOTER
+       ============================================================ -->
+  <footer class="footer-v3" id="footer">
+    <div class="wrap">
 
-      <div class="footer__logo">
-        <img src="assets/icons/logo-footer.svg" alt="D. H. Chen Foundation" />
-      </div>
+      <div class="footer-v3__inner">
 
-      <div class="footer__col">
-        <nav class="footer__nav" aria-label="Footer navigation">
-          <a href="#" class="footer__nav-link">成為我們的夥伴</a>
-          <a href="#" class="footer__nav-link">保持聯繫</a>
-          <a href="#" class="footer__nav-link">加入我們</a>
+        <a href="index_tc.html" aria-label="陳廷驊基金會">
+          <img src="assets/images/logo-footer-compassion.svg" alt="#Compassion in Action 慈之以行" class="footer-v3__logo" />
+        </a>
+
+        <div class="footer-v3__col">
+          <nav class="footer-v3__nav" aria-label="Footer navigation">
+            <a href="#">成為我們的夥伴</a>
+            <a href="#">保持聯繫</a>
+            <a href="#">加入我們</a>
+          </nav>
+          <div class="footer-v3__social">
+            <a href="#" aria-label="LinkedIn">
+              <span class="footer-v3__social-icon footer-v3__social-icon--linkedin" aria-hidden="true"></span>
+            </a>
+            <a href="#" aria-label="Instagram">
+              <span class="footer-v3__social-icon footer-v3__social-icon--instagram" aria-hidden="true"></span>
+            </a>
+          </div>
+        </div>
+
+        <nav class="footer-v3__legal" aria-label="Legal navigation">
+          <a href="#">私隱政策</a>
+          <a href="#">免責聲明</a>
+          <a href="#">網站地圖</a>
+          <a href="#">無障礙瀏覽</a>
         </nav>
 
-        <div class="footer__social">
-          <a href="#" class="footer__social-link" aria-label="LinkedIn">
-            <img src="assets/icons/icon-linkedin.svg" alt="LinkedIn" />
-          </a>
-          <a href="#" class="footer__social-link" aria-label="Instagram">
-            <img src="assets/icons/icon-instagram.svg" alt="Instagram" />
-          </a>
-        </div>
       </div>
 
-      <nav class="footer__legal-nav" aria-label="Legal navigation">
-        <a href="#" class="footer__legal-link">私隱政策</a>
-        <a href="#" class="footer__legal-link">免責聲明</a>
-        <a href="#" class="footer__legal-link">網站地圖</a>
-        <a href="#" class="footer__legal-link">無障礙瀏覽</a>
-      </nav>
-
-    </div>
-
-    <div class="footer__copyright">
-      <p>
-        <span class="footer__copy-line">© 2026 陳廷驊基金會。版權所有</span><span class="footer__copy-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><span class="footer__copy-line"><a href="https://www.assembly.com.hk" class="footer__credit" target="_blank" rel="noopener">網站由 Assembly 設計</a></span>
+      <p class="footer-v3__copyright">
+        © 2026 陳廷驊基金會。版權所有<span class="footer-v3__copy-sep">&nbsp;&nbsp;|&nbsp;&nbsp;</span><a href="https://www.assembly.com.hk" target="_blank" rel="noopener">網站由 Assembly 設計</a>
       </p>
-    </div>
 
+    </div>
   </footer>
 
   <!-- Full-screen search overlay (opened from the nav search icon) -->
   <div class="search-overlay" id="search-overlay" role="dialog" aria-modal="true" aria-label="Search" aria-hidden="true">
     <div class="search-overlay__bar">
-      <a href="index_tc.html" class="search-overlay__logo" aria-label="D. H. Chen Foundation home">
+      <a href="index_tc.html" class="search-overlay__logo" aria-label="陳廷驊基金會">
         <img src="assets/icons/logo-nav.png" alt="D. H. Chen Foundation" />
       </a>
       <button class="search-overlay__close" type="button" aria-label="Close search">
@@ -688,7 +575,7 @@
     <div class="search-overlay__inner">
       <form class="search-overlay__field" role="search" action="#">
         <img class="search-overlay__icon" src="assets/icons/icon-search.svg" alt="" aria-hidden="true" />
-        <input class="search-overlay__input" type="search" placeholder="搜尋..." aria-label="Search" />
+        <input class="search-overlay__input" type="search" placeholder="想找些什麼..." aria-label="Search" />
       </form>
       <p class="search-overlay__label">焦點資訊</p>
       <nav class="search-overlay__hot" aria-label="Popular searches">
@@ -707,6 +594,6 @@
   </div>
 
   <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
-  <script src="script.js?v=4.2"></script>
+  <script src="script.js?v=7.7"></script>
 </body>
 </html>

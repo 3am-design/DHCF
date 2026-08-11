@@ -2160,6 +2160,28 @@ window.scrollTo(0, 0);
   const source = title.cloneNode(true);   /* pristine copy to re-split from */
   const LINE_STAGGER = 130;               /* ms between one line and the next */
 
+  /* Chinese has no spaces, so the whitespace split below hands back one
+     enormous "word" per line and the browser then breaks it between any
+     two glyphs — the banner came out reading 與夥伴同 / 行，. Split a CJK
+     run after each clause mark instead, so the unit is the clause; §10
+     keeps each unit whole with `white-space: nowrap`, which leaves the
+     comma as the only place a line may turn.
+     Written as a loop rather than a lookbehind regex: the punctuation has
+     to stay with the clause it closes, and lookbehind is still the newest
+     thing in this file's browser floor. */
+  const CLAUSE_END = '，。、；：！？';
+  function cjkUnits(text) {
+    if (!/[一-鿿]/.test(text)) return [text];
+    const out = [];
+    let cur = '';
+    for (let i = 0; i < text.length; i++) {
+      cur += text[i];
+      if (CLAUSE_END.indexOf(text[i]) !== -1) { out.push(cur); cur = ''; }
+    }
+    if (cur) out.push(cur);
+    return out;
+  }
+
   /* every word in its own span, accent words flagged, so they can be
      regrouped by rendered line without losing their colour */
   function toWords() {
@@ -2178,10 +2200,12 @@ window.scrollTo(0, 0);
           n.textContent.split(/([^\S\u00a0]+)/).forEach(function (bit) {
             if (!bit) return;
             if (/^[^\S\u00a0]+$/.test(bit)) return void title.appendChild(document.createTextNode(' '));
-            const w = document.createElement('span');
-            w.className = 'hw' + (isAccent ? ' hero-v3__accent' : '');
-            w.textContent = bit;
-            title.appendChild(w);
+            cjkUnits(bit).forEach(function (unit) {
+              const w = document.createElement('span');
+              w.className = 'hw' + (isAccent ? ' hero-v3__accent' : '');
+              w.textContent = unit;
+              title.appendChild(w);
+            });
           });
           return;
         }
@@ -2202,6 +2226,16 @@ window.scrollTo(0, 0);
   function toLines() {
     const words = Array.prototype.slice.call(title.querySelectorAll('.hw'));
     if (!words.length) return;
+    /* Which words the source actually had a space between. `toWords` keeps
+       those spaces as text nodes, and the regroup below used to throw them
+       away and put one back between every pair — right for English, where
+       the words are space-delimited anyway, but wrong for Chinese, which
+       has none: it opened a gap on each side of the accent (將 慈悲 化作…)
+       and pushed the line over its measure. */
+    words.forEach(function (w) {
+      const prev = w.previousSibling;
+      w.__spaced = !!(prev && prev.nodeType === 3 && /\s/.test(prev.textContent));
+    });
     const lines = [];
     let top = null;
     words.forEach(function (w) {
@@ -2218,7 +2252,7 @@ window.scrollTo(0, 0);
       inner.className = 'hero-v3__ln-i';
       inner.style.setProperty('--ln-delay', (i * LINE_STAGGER) + 'ms');
       group.forEach(function (w, j) {
-        if (j) inner.appendChild(document.createTextNode(' '));
+        if (j && w.__spaced) inner.appendChild(document.createTextNode(' '));
         inner.appendChild(w);
       });
       box.appendChild(inner);
@@ -2325,9 +2359,19 @@ window.scrollTo(0, 0);
     barIn:  320    /* then the colour bar wipes                        */
   };
 
-  const QUOTE = ['Care for others as well as', 'you would care for yourself.'];
-  const CITE  = 'Dr. Din Hwa Chen';
-  const YEARS = '(1923–2012)';
+  /* The founder's motto, in the language of the page it is opening. Two
+     lines because the quote lifts one line at a time (each is its own
+     `.opening__line`), so the break is part of the choreography rather
+     than something the browser decides.
+     The Chinese is the wording the article pull-quote already uses
+     (Articles_tc.html), not a fresh translation — the same sentence in
+     two places on the site should read the same way. */
+  const TC = document.documentElement.lang === 'zh-Hant';
+  const QUOTE = TC
+    ? ['如同照顧自己一樣，', '真誠地關懷他人。']
+    : ['Care for others as well as', 'you would care for yourself.'];
+  const CITE  = TC ? '陳廷驊博士' : 'Dr. Din Hwa Chen';
+  const YEARS = TC ? '（1923–2012）' : '(1923–2012)';
 
   /* landing state: banner copy held back, menu held back, page locked.
      `lp-boot` (set inline in <head>) was covering the gap until now —
