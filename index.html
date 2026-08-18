@@ -11,16 +11,21 @@
        you scroll). Keeps top + bottom chrome consistently white. -->
   <meta name="theme-color" content="#ffffff" />
   <title>The D. H. Chen Foundation</title>
+  <!-- The serif is self-hosted and the opening measures itself against text
+       set in it, so it must not arrive late: preloaded, it is in before the
+       first paint and nothing reflows under the intro. -->
+  <link rel="preload" href="assets/fonts/baskervville-regular.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Fira+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <!-- Shared base (reset, tokens, nav shell, mobile menu, search, cursor) -->
-  <link rel="stylesheet" href="style.css?v=7.7" />
+  <link rel="stylesheet" href="style.css?v=10.3" />
   <!-- Home V3 — Figma "R2 / OPT2_01_Home_01_Desktop" -->
-  <link rel="stylesheet" href="style-home.css?v=7.7" />
+  <link rel="stylesheet" href="style-home.css?v=10.3" />
   <!-- …and released again for anyone without JS, who never gets the intro. -->
   <noscript><style>
     html.lp-boot .nav__logo, html.lp-boot .nav__menu, html.lp-boot .nav__actions,
+    html.lp-boot .nav__search-btn--stacked,
     html.lp-boot .hero-v3__title, html.lp-boot .hero-v3__foot { opacity: 1; }
     html.lp-boot .colourbar--hero { clip-path: none; }
   </style></noscript>
@@ -43,6 +48,17 @@
         <a href="#" class="nav__link" data-mega="about">About</a>
         <a href="#" class="nav__link">Connect</a>
       </nav>
+
+      <!-- R2 12141-53 puts the loupe under the stacked menu, right-aligned
+           with it. It is its own button rather than the one in
+           `.nav__actions` moved across: that group is what the sticky pill
+           is built out of, and an absolutely-placed child of it is at the
+           mercy of the landing translate, which makes it the containing
+           block for as long as it runs. Only ever one of the two is on
+           screen (see style-home.css). -->
+      <button class="nav__search-btn nav__search-btn--stacked" aria-label="Search">
+        <img src="assets/icons/icon-search.svg" alt="" />
+      </button>
 
       <div class="nav__actions">
         <!-- sticky bar only: the seal joins search + hamburger inside the
@@ -256,15 +272,17 @@
             <span class="dots__dot dots__dot--core" style="--x:50.00%; --y:48.29%; --s:3.86%; --o:1; --dl:0ms"></span>
           </div>
           <div class="panel__head">
-            <p class="panel__eyebrow">Cultivating awareness of who we are</p>
             <h2 class="panel__title">Being</h2>
           </div>
           <div class="panel__body">
             <p class="panel__lede">
-              Connecting the Self to the Authentic Self through mindfulness and contemplative practices
+              This is where awareness begins.
+            </p>
+            <p class="panel__copy">
+              We connect with our authentic selves to become more aware of the possibilities and opportunities that can inspire meaningful change.
             </p>
             <p class="panel__note">
-              This is about presence, self-awareness, compassion, and inner wellbeing.
+              About knowing who we are, what we care about deeply, and how we make our most important decisions.
             </p>
           </div>
         </section>
@@ -274,21 +292,17 @@
           <!-- 線 — one dot spreads left/right into a line (script fills the dots) -->
           <div class="panel__dotrow dotrow" data-motion="dotrow" aria-hidden="true"></div>
           <div class="panel__head">
-            <p class="panel__eyebrow">Growing into who we can be</p>
             <h2 class="panel__title">Becoming</h2>
           </div>
           <div class="panel__body">
             <p class="panel__lede">
-              Connecting the Self to Possibility through the expression of Potential and Purpose
+              This is where possibilities take shape and grow into meaningful contributions.
             </p>
-            <p class="panel__label">This is where people discover:</p>
-            <ul class="panel__list">
-              <li>their gifts</li>
-              <li>their calling</li>
-              <li>their capacity to contribute</li>
-            </ul>
+            <p class="panel__copy">
+              We connect the self to possibility through exploring potential and purposes, transforming insight into action and nurturing ideas that can create positive social impact.
+            </p>
             <p class="panel__note">
-              &ldquo;Possibility&rdquo; works nicely because it bridges present identity and future potential.
+              About what we can be, and what we want to become as individuals and as members of society.
             </p>
           </div>
         </section>
@@ -298,28 +312,34 @@
           <!-- 面 — the line spreads up/down into a plane (script fills the rules) -->
           <div class="panel__lines lines" data-motion="lines" aria-hidden="true"></div>
           <div class="panel__head">
-            <p class="panel__eyebrow">Recognising that we are part of something larger than ourselves</p>
             <h2 class="panel__title">Belonging</h2>
           </div>
           <div class="panel__body">
             <p class="panel__lede">
-              Connecting the Self to Community through stronger Social Connections
+              This is where individual contributions come together, and where impact becomes collective.
+            </p>
+            <p class="panel__copy">
+              We connect the self to community through stronger social connections, cultivating relationships built on trust, care, and shared purpose.
             </p>
             <p class="panel__note">
-              This is where compassion extends beyond the individual and becomes relational.
+              About who we are, and who we aspire to be, within the broader communities in which we live.
             </p>
-            <p class="panel__question">
-              <strong>The question becomes</strong>
-              What happens when people who are grounded, purposeful, and connected decide to create change together?
-            </p>
-            <p class="panel__note">That naturally leads into social innovation.</p>
           </div>
         </section>
 
         <!-- 4 — Bettering -->
         <section class="panel panel--bettering">
-          <div class="panel__photo" aria-hidden="true">
-            <img src="assets/images/bettering-photo.png" alt="" />
+          <!-- Four frames on the same spot: each one pushes in slowly, and as
+               it reaches the end of its travel the next is cross-faded over
+               it. Plain <img>s stacked by CSS rather than a slider library —
+               the whole behaviour is one class (`is-on`) moved along by
+               script §8.7, and with no script (or reduced motion) the first
+               frame simply stays put. -->
+          <div class="panel__photo" data-slideshow aria-hidden="true">
+            <img class="panel__photo-img" src="assets/images/bettering-1.png" alt="" />
+            <img class="panel__photo-img" src="assets/images/bettering-2.png" alt="" loading="lazy" />
+            <img class="panel__photo-img" src="assets/images/bettering-3.png" alt="" loading="lazy" />
+            <img class="panel__photo-img" src="assets/images/bettering-4.png" alt="" loading="lazy" />
           </div>
           <div class="panel__head">
             <p class="panel__crumbs">
@@ -328,11 +348,11 @@
             <h2 class="panel__title">Bettering</h2>
           </div>
           <div class="panel__body">
-            <p class="panel__lede">Creating a better world together</p>
+            <p class="panel__lede">Creating a compassionate society together through approaches that are:</p>
             <ul class="panel__bullets">
-              <li>Supporting social innovators through funding and proof-of-concept resources</li>
-              <li>Lowering barriers to entry for social impact ventures</li>
-              <li>Accelerating ventures towards their intended End Game and lasting impact</li>
+              <li>impact-driven</li>
+              <li>sustainable</li>
+              <li>innovative</li>
             </ul>
             <p class="panel__note">
               This feels particularly aligned with the Foundation&rsquo;s philosophy because it focuses on societal improvement rather than commercial success.
@@ -357,8 +377,8 @@
             Compassion is not only a value.<br />
             It is a way of <span class="news-v3__accent typer"
                                  data-typer
-                                 data-words="working|being|becoming|belonging|bettering"
-                                 aria-live="off">working</span>
+                                 data-words="being|living|engaging|connecting|partnering|creating change|journeying|practising philanthropy"
+                                 aria-live="off">being</span>
           </h2>
 
           <div class="news-v3__filters" role="tablist" aria-label="Filter news by category">
@@ -485,20 +505,99 @@
 
         <hr class="ventures__rule" />
 
+        <!-- R2 12145-654: the block above the footer is now the partner wall —
+             a centred heading and paragraph over a row of partner marks, with
+             the Funding pill centred under it. It replaces the two-column
+             logo + copy + photo arrangement. -->
         <div class="funding">
-          <div class="funding__col">
-            <img src="assets/images/logo-funding.svg" alt="The D. H. Chen Foundation" class="funding__logo" />
-            <p class="funding__text">
-              We accept donation applications throughout the year. Applicants interested in applying for our donation should complete the corresponding Donation Application Form, upload the required documents and allow ample time for the review and vetting process.
-            </p>
-            <a href="#" class="btn-pill">
-              Funding
-              <span class="btn-pill__arrow" aria-hidden="true"></span>
-            </a>
+          <h2 class="funding__title">Partner with us</h2>
+          <p class="funding__text">
+            We accept donation applications throughout the year. Applicants interested in applying for our donation should complete the corresponding Donation Application Form, upload the required documents and allow ample time for the review and vetting process.
+          </p>
+          <div class="funding__marquee">
+            <!-- Four strips, animated by exactly -50%: as the first half walks
+                 off the left the second half is already standing where it
+                 started, so the loop never shows a seam. Two would not be
+                 enough — one strip is narrower than the row is wide, and the
+                 track has to stay at least a screenful ahead of itself or a
+                 gap opens at the right before the jump.
+                 The spacing rides on the items rather than a flex `gap`: a
+                 gap between strips would not be half the track, and the loop
+                 would drift a little further out of step every cycle.
+
+                 `--s` is the optical size of a mark, and it lives here rather
+                 than in the stylesheet so it travels with the logo it belongs
+                 to — add or drop one and nothing else has to be renumbered.
+                 The plain wordmarks sit at 1; the heavy single-word marks are
+                 dialled down to carry about the same weight of ink as the
+                 six the design was drawn around (measured, not guessed). -->
+            <div class="funding__track">
+              <ul class="funding__partners">
+                <li><img src="assets/images/partners/partner-1.svg" alt="Lane Crawford" /></li>
+                <li><img src="assets/images/partners/partner-2.svg" alt="Chow Sang Sang" /></li>
+                <li><img src="assets/images/partners/partner-3.svg" alt="Emphasis" /></li>
+                <li><img src="assets/images/partners/partner-4.svg" alt="Chinachem Group" /></li>
+                <li><img src="assets/images/partners/partner-5.svg" alt="Harbour Plaza" /></li>
+                <li><img src="assets/images/partners/partner-6.svg" alt="The Hong Kong Polytechnic University" /></li>
+                <li style="--s: .69"><img src="assets/images/partners/partner-7.svg" alt="Siemens" /></li>
+                <li style="--s: .75"><img src="assets/images/partners/partner-8.svg" alt="Tencent" /></li>
+                <li style="--s: .61"><img src="assets/images/partners/partner-9.svg" alt="Uber" /></li>
+                <li style="--s: .78"><img src="assets/images/partners/partner-10.svg" alt="Amazon Pay" /></li>
+                <li style="--s: .52"><img src="assets/images/partners/partner-11.svg" alt="Behance" /></li>
+                <li style="--s: .58"><img src="assets/images/partners/partner-12.svg" alt="Netflix" /></li>
+                <li style="--s: .81"><img src="assets/images/partners/partner-13.svg" alt="Oracle" /></li>
+              </ul>
+              <ul class="funding__partners" aria-hidden="true">
+                <li><img src="assets/images/partners/partner-1.svg" alt="Lane Crawford" /></li>
+                <li><img src="assets/images/partners/partner-2.svg" alt="Chow Sang Sang" /></li>
+                <li><img src="assets/images/partners/partner-3.svg" alt="Emphasis" /></li>
+                <li><img src="assets/images/partners/partner-4.svg" alt="Chinachem Group" /></li>
+                <li><img src="assets/images/partners/partner-5.svg" alt="Harbour Plaza" /></li>
+                <li><img src="assets/images/partners/partner-6.svg" alt="The Hong Kong Polytechnic University" /></li>
+                <li style="--s: .69"><img src="assets/images/partners/partner-7.svg" alt="Siemens" /></li>
+                <li style="--s: .75"><img src="assets/images/partners/partner-8.svg" alt="Tencent" /></li>
+                <li style="--s: .61"><img src="assets/images/partners/partner-9.svg" alt="Uber" /></li>
+                <li style="--s: .78"><img src="assets/images/partners/partner-10.svg" alt="Amazon Pay" /></li>
+                <li style="--s: .52"><img src="assets/images/partners/partner-11.svg" alt="Behance" /></li>
+                <li style="--s: .58"><img src="assets/images/partners/partner-12.svg" alt="Netflix" /></li>
+                <li style="--s: .81"><img src="assets/images/partners/partner-13.svg" alt="Oracle" /></li>
+              </ul>
+              <ul class="funding__partners" aria-hidden="true">
+                <li><img src="assets/images/partners/partner-1.svg" alt="Lane Crawford" /></li>
+                <li><img src="assets/images/partners/partner-2.svg" alt="Chow Sang Sang" /></li>
+                <li><img src="assets/images/partners/partner-3.svg" alt="Emphasis" /></li>
+                <li><img src="assets/images/partners/partner-4.svg" alt="Chinachem Group" /></li>
+                <li><img src="assets/images/partners/partner-5.svg" alt="Harbour Plaza" /></li>
+                <li><img src="assets/images/partners/partner-6.svg" alt="The Hong Kong Polytechnic University" /></li>
+                <li style="--s: .69"><img src="assets/images/partners/partner-7.svg" alt="Siemens" /></li>
+                <li style="--s: .75"><img src="assets/images/partners/partner-8.svg" alt="Tencent" /></li>
+                <li style="--s: .61"><img src="assets/images/partners/partner-9.svg" alt="Uber" /></li>
+                <li style="--s: .78"><img src="assets/images/partners/partner-10.svg" alt="Amazon Pay" /></li>
+                <li style="--s: .52"><img src="assets/images/partners/partner-11.svg" alt="Behance" /></li>
+                <li style="--s: .58"><img src="assets/images/partners/partner-12.svg" alt="Netflix" /></li>
+                <li style="--s: .81"><img src="assets/images/partners/partner-13.svg" alt="Oracle" /></li>
+              </ul>
+              <ul class="funding__partners" aria-hidden="true">
+                <li><img src="assets/images/partners/partner-1.svg" alt="Lane Crawford" /></li>
+                <li><img src="assets/images/partners/partner-2.svg" alt="Chow Sang Sang" /></li>
+                <li><img src="assets/images/partners/partner-3.svg" alt="Emphasis" /></li>
+                <li><img src="assets/images/partners/partner-4.svg" alt="Chinachem Group" /></li>
+                <li><img src="assets/images/partners/partner-5.svg" alt="Harbour Plaza" /></li>
+                <li><img src="assets/images/partners/partner-6.svg" alt="The Hong Kong Polytechnic University" /></li>
+                <li style="--s: .69"><img src="assets/images/partners/partner-7.svg" alt="Siemens" /></li>
+                <li style="--s: .75"><img src="assets/images/partners/partner-8.svg" alt="Tencent" /></li>
+                <li style="--s: .61"><img src="assets/images/partners/partner-9.svg" alt="Uber" /></li>
+                <li style="--s: .78"><img src="assets/images/partners/partner-10.svg" alt="Amazon Pay" /></li>
+                <li style="--s: .52"><img src="assets/images/partners/partner-11.svg" alt="Behance" /></li>
+                <li style="--s: .58"><img src="assets/images/partners/partner-12.svg" alt="Netflix" /></li>
+                <li style="--s: .81"><img src="assets/images/partners/partner-13.svg" alt="Oracle" /></li>
+              </ul>
+            </div>
           </div>
-          <div class="funding__photo">
-            <img src="assets/images/funding-photo.png" alt="" />
-          </div>
+          <a href="#" class="btn-pill funding__cta">
+            Funding
+            <span class="btn-pill__arrow" aria-hidden="true"></span>
+          </a>
         </div>
 
       </div>
@@ -594,6 +693,6 @@
   </div>
 
   <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
-  <script src="script.js?v=7.7"></script>
+  <script src="script.js?v=10.3"></script>
 </body>
 </html>

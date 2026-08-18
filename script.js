@@ -9,6 +9,31 @@ if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 window.scrollTo(0, 0);
 
 /* ----------------------------------------------------------------
+   0a. Page zoom — measured, not read.
+   Between 768 and 1800px `body` carries `zoom: .9`, and anything that
+   converts a measured rect back into a value to be *written* on a zoomed
+   element (a translate, a width) has to divide that zoom out again.
+
+   It is measured rather than taken from `getComputedStyle(body).zoom`
+   because that string is not something every engine agrees on: Safari
+   reported no usable zoom there while still rendering at 0.9, so the
+   opening's seal was parked with the correction missing — it travelled
+   90% of the way to the motto and the block came down where the mark
+   should have been, half a seal below it. Chrome, reporting `0.9`, was
+   fine, which is exactly the shape of the bug that only showed up there.
+
+   `offsetWidth` is layout px and `getBoundingClientRect()` is rendered px,
+   so their ratio *is* whatever zoom the engine is actually applying — no
+   engine has to agree with any other for this to come out right.
+   ---------------------------------------------------------------- */
+window.__pageZoom = function () {
+  const b = document.body;
+  if (!b || !b.offsetWidth) return 1;
+  const z = b.getBoundingClientRect().width / b.offsetWidth;
+  return (isFinite(z) && z > 0) ? z : 1;
+};
+
+/* ----------------------------------------------------------------
    0. Lenis smooth scrolling — inertia-smoothed wheel/touch scroll.
    Native scroll events still fire, so the nav, wave and hero-scene
    listeners all keep working unchanged.
@@ -162,7 +187,7 @@ window.scrollTo(0, 0);
     const r = el.getBoundingClientRect();
     /* the overlay lives inside the zoomed body (`zoom: .9` under 1800px),
        so its own coordinate space is 1/zoom of what the rect reports */
-    const z = parseFloat(window.getComputedStyle(document.body).zoom) || 1;
+    const z = window.__pageZoom();
     const x = ((r.left + r.width / 2) / z).toFixed(1) + 'px';
     const y = ((r.top + r.height / 2) / z).toFixed(1) + 'px';
     overlay.style.setProperty('--reveal-x', x);
@@ -178,7 +203,14 @@ window.scrollTo(0, 0);
      the stylesheet's default (the right-hand corner) for the very first
      run. Now it is already correct before the click happens. */
   function park() {
-    const b = document.querySelector('.nav__search-btn');
+    /* whichever one is currently on screen — the bar carries two copies of
+       the search button (the stacked one under the menu, and the one in the
+       actions row that the sticky pill is built from), and only one of them
+       is ever showing */
+    const b = Array.prototype.find.call(
+      document.querySelectorAll('.nav__search-btn'),
+      function (el) { return el.getClientRects().length; }
+    );
     /* getClientRects, not offsetParent: the sticky nav is `position: fixed`,
        and a fixed ancestor makes offsetParent null in some browsers */
     if (!b || !b.getClientRects().length) return;
@@ -840,7 +872,7 @@ window.scrollTo(0, 0);
      so divide everything by the effective zoom */
   let zoom = 1;
   function readZoom() {
-    zoom = parseFloat(window.getComputedStyle(document.body).zoom) || 1;
+    zoom = window.__pageZoom();
   }
   readZoom();
   window.addEventListener('resize', readZoom);
@@ -875,9 +907,18 @@ window.scrollTo(0, 0);
       gx = (r.left + r.width / 2) / zoom;
       gy = (r.top + r.height / 2) / zoom;
     }
-    const k = magnet ? 0.3 : 0.2;
-    cx += (gx - cx) * k;
-    cy += (gy - cy) * k;
+    /* The free dot rides the pointer exactly — a lerp here is a lag, and at
+       0.2 per frame it read as the dot sliding to catch up rather than as
+       the pointer itself. The easing is kept only for the magnet, where it
+       is doing real work: the glide onto (and off) the centre of a control
+       is the snap, and without it the ring would teleport. */
+    if (magnet) {
+      cx += (gx - cx) * 0.3;
+      cy += (gy - cy) * 0.3;
+    } else {
+      cx = gx;
+      cy = gy;
+    }
     cursor.style.transform =
       'translate3d(' + cx.toFixed(1) + 'px,' + cy.toFixed(1) + 'px,0) translate(-50%,-50%)';
     window.requestAnimationFrame(follow);
@@ -936,8 +977,16 @@ window.scrollTo(0, 0);
     });
     b.addEventListener('mouseleave', release);
   });
-  /* Menu links and 中文 no longer get wrapped by the cursor — they have
-     their own dot-and-orange hover in CSS. The orange pills do get it:
+  /* Menu links and 中文 are not wrapped by the cursor — the ring would have
+     to hug the glyphs, which is what the roomy wrap was fighting. They get
+     the ring state instead: the solid dot opens into an outline with a small
+     dot at its centre, on the spot, and travels with the pointer as usual. */
+  document.querySelectorAll('.nav__link, .nav__lang').forEach(function (el) {
+    el.addEventListener('mouseenter', function () { cursor.classList.add('cursor--ring'); });
+    el.addEventListener('mouseleave', function () { cursor.classList.remove('cursor--ring'); });
+  });
+
+  /* The orange pills do get the wrap:
      the ring *is* the outline the button gains on hover. */
   document.querySelectorAll('.btn-circle, button').forEach(function (el) {
     /* The hamburger and the search button keep the plain dot: the
@@ -968,6 +1017,13 @@ window.scrollTo(0, 0);
   ).forEach(function (el) {
     el.addEventListener('mouseenter', function () { cursor.classList.add('cursor--on-dark'); });
     el.addEventListener('mouseleave', function () { cursor.classList.remove('cursor--on-dark'); });
+  });
+
+  /* the sub-links get the ring too: they are menu links, and the ring is
+     what this cursor does over a menu link */
+  document.querySelectorAll('.nav__mega-links a').forEach(function (el) {
+    el.addEventListener('mouseenter', function () { cursor.classList.add('cursor--ring'); });
+    el.addEventListener('mouseleave', function () { cursor.classList.remove('cursor--ring'); });
   });
 
   /* listing story cards: big "DISCOVER" circle over the card body, but a
@@ -1477,7 +1533,7 @@ window.scrollTo(0, 0);
   /* top-to-bottom, in markup order — `:scope >` keeps list items grouped
      under their own parent rather than jumping the order around */
   const STEP_SEL = '.panel__eyebrow, .panel__crumbs, .panel__title, .panel__lede,' +
-                   '.panel__label, .panel__list li, .panel__note,' +
+                   '.panel__copy, .panel__label, .panel__list li, .panel__note,' +
                    '.panel__question, .panel__bullets li';
 
   const STEP = 110;    /* between one line and the next            */
@@ -1491,6 +1547,40 @@ window.scrollTo(0, 0);
      graphic's — the copy has already done the waiting. 線 and 面 have no
      separate lit state at all, so they play the moment they're cued. */
   const PANEL_HOLD = { dots: 1400, dotrow: 0, lines: 0 };
+
+  /* --- the Bettering photo, as four frames ------------------------
+     Each frame pushes in for SLIDE ms and is then cross-faded out under
+     the next one (the fade itself is 1.4s, in the stylesheet). The zoom
+     runs 9s against a 7s turn, so the picture is still travelling when it
+     hands over — what you see is one continuous drift rather than four
+     separate moves that each stop.
+
+     Only ever one timer, and it is started by the same intersection cue
+     that plays the rest of the panel, so nothing is running while the
+     section is off screen. Reduced motion opts out entirely: the CSS
+     already holds every frame still, and without the interval the first
+     one simply stays. */
+  const SLIDE = 5000;
+  function startSlideshow(photo) {
+    if (!photo.hasAttribute('data-slideshow')) return;
+    if (photo.dataset.playing) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const frames = photo.querySelectorAll('.panel__photo-img');
+    if (frames.length < 2) return;
+    photo.dataset.playing = '1';
+    /* `is-live` hands the first frame over to the same rules as the rest,
+       and lighting it here — not in the markup — is what makes its push in
+       start now, as the panel is reached, rather than back when the page
+       was parsed. */
+    photo.classList.add('is-live');
+    let i = 0;
+    frames[0].classList.add('is-on');
+    window.setInterval(function () {
+      frames[i].classList.remove('is-on');
+      i = (i + 1) % frames.length;
+      frames[i].classList.add('is-on');
+    }, SLIDE);
+  }
 
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -1539,7 +1629,10 @@ window.scrollTo(0, 0);
       if (!graphic.dataset.motion) {
         /* Bettering's photo — already on screen with the orange; just start
            the slow push in, a beat after the card has settled */
-        return void window.setTimeout(function () { graphic.classList.add('is-zoom'); }, ZOOM_IN);
+        return void window.setTimeout(function () {
+          graphic.classList.add('is-zoom');
+          startSlideshow(graphic);
+        }, ZOOM_IN);
       }
       window.setTimeout(function () {
         graphic.classList.add('is-lit');
@@ -2340,11 +2433,26 @@ window.scrollTo(0, 0);
                       the rule has quite finished reaching the ends      */
     plane: 2000,   /* that rule multiplies up and down  (1.35s + 0.70s) */
     planeH: 500,   /* the finished plane holds                         */
-    said:   480,   /* the plane fades (1.1s) — the words start into it */
+    /* 面 → 印. The squeeze leads and the fill follows it in, rather than
+       the other way round: filling at full size meant a whole screen of
+       ruled plane turning into a whole screen of flat orange, which is a
+       lot of ink to appear at once and read as a different object. Coming
+       in on the compression instead, the rules are already being pushed
+       together when they thicken, so the solid is something the squeeze
+       *does* to the plane. */
+    fillIn: 170,   /* i: how far into the press the fill starts — early,
+                      because both axes now move from the first frame and
+                      the ink has to be closed before the vertical squeeze
+                      has gone anywhere (0.45s)                          */
+    press: 1150,   /* ii: the block shrinks onto the seal's slot — both
+                      axes across the whole beat (1.05s), travelling for
+                      1.15s                                              */
+    carve: 1400,   /* iii: the ink is wiped off the mark from the top down
+                      and the strokes of 陳 are drawn out (1.35s, near a
+                      steady speed)                                      */
     /* the motto */
-    markIn: 640,   /* into the motto's own cascade: both quote lines are
-                      home, the seal fades up in its slot beneath them,
-                      and the attribution follows it (CSS 0.86s delay)  */
+    markIn: 420,   /* the finished seal holds alone on the empty plate,
+                      the way the single dot did at the end of act one  */
     hold1: 3400,   /* the finished plate sits — quote, seal and
                       attribution together. The longest pause in the
                       sequence by far: it is the one thing the visitor
@@ -2372,6 +2480,7 @@ window.scrollTo(0, 0);
     : ['Care for others as well as', 'you would care for yourself.'];
   const CITE  = TC ? '陳廷驊博士' : 'Dr. Din Hwa Chen';
   const YEARS = TC ? '（1923–2012）' : '(1923–2012)';
+  const SKIP  = TC ? '略過' : 'Skip';
 
   /* landing state: banner copy held back, menu held back, page locked.
      `lp-boot` (set inline in <head>) was covering the gap until now —
@@ -2408,14 +2517,15 @@ window.scrollTo(0, 0);
   /* --- the overlay (JS-side so no-JS visitors never see it) -------- */
   const intro = document.createElement('div');
   intro.className = 'opening';
-  intro.setAttribute('aria-hidden', 'true');
+  /* `aria-hidden` sits on the two decorative blocks rather than on the
+     overlay, so the skip button inside it stays a real, reachable control */
   intro.innerHTML =
-    '<div class="opening__stage">' +
+    '<div class="opening__stage" aria-hidden="true">' +
       '<div class="opening__dots dots"></div>' +
       '<div class="opening__dotrow dotrow"></div>' +
       '<div class="opening__lines lines"></div>' +
     '</div>' +
-    '<div class="opening__motto">' +
+    '<div class="opening__motto" aria-hidden="true">' +
       '<p class="opening__quote">' +
         QUOTE.map(function (l) {
           return '<span class="opening__line"><i>' + l + '</i></span>';
@@ -2433,7 +2543,8 @@ window.scrollTo(0, 0);
         '<span class="opening__cite-name"></span>' +
         '<span class="opening__cite-years"></span>' +
       '</p>' +
-    '</div>';
+    '</div>' +
+    '<button type="button" class="opening__skip">' + SKIP + '</button>';
   body.appendChild(intro);
 
   const motto  = intro.querySelector('.opening__motto');
@@ -2456,11 +2567,40 @@ window.scrollTo(0, 0);
      move, not by the whole distance. */
   function markY() {
     if (!navLogo || !slot) return 0;
-    const zoom = parseFloat(window.getComputedStyle(body).zoom) || 1;
+    const zoom = window.__pageZoom();
     const now  = parseFloat(body.style.getPropertyValue('--mark-y')) || 0;
     const r = navLogo.getBoundingClientRect();
     const s = slot.getBoundingClientRect();
     return now + ((s.top + s.height / 2) - (r.top + r.height / 2)) / zoom;
+  }
+
+  /* Where the block of ink has to go, and how hard it has to be squeezed
+     to become the seal. The stage box is 720 × 0, so its own rect *is* the
+     point every graphic is centred on: the travel is slot centre minus
+     that (÷ zoom, as in markY, because a translate on a zoomed element is
+     scaled with it). The two scale factors are ratios of rects measured
+     the same way, so the zoom cancels itself out of those.
+     The block's height is the rules' own geometry — RULES × pitch, which
+     overflows the masked box they live in — and its width is what a rule
+     actually measures. Read at the moment the beat starts, not up front:
+     the plate only settles once its type has laid out, and both it and the
+     stage move with a resize. */
+  function carveTo() {
+    const zoom = window.__pageZoom();
+    const st   = stage.getBoundingClientRect();
+    const s    = slot ? slot.getBoundingClientRect() : null;
+    /* the width comes off the box the rules live in, not off a rule: a
+       rule's own rect is its *scaled* one, and if the tab was in the
+       background for the act that draws them (transitions are throttled
+       there) that is still zero — which would divide out to an infinite
+       scale and blow the block up instead of pressing it down */
+    const box  = lines.getBoundingClientRect();
+    if (!s || !box.width) return { y: 0, x: 0.04, sy: 0.11 };
+    return {
+      y:  ((s.top + s.height / 2) - st.top) / zoom,
+      x:  s.width / box.width,
+      sy: s.height / (RULES * RULE_PITCH * zoom)
+    };
   }
 
   /* Order matters: `--mark-y` has to be in place *before* the stage rules
@@ -2564,7 +2704,16 @@ window.scrollTo(0, 0);
     rule.className = 'lines__line' + (d === 0 ? ' lines__line--mid' : '');
     rule.style.setProperty('--y', 'calc(50% + ' +
       ((i - RULES_MID) * RULE_PITCH) + 'px)');
-    rule.style.setProperty('--dl', d === 0 ? '0ms' : ringDelay(d - 1, 210));
+    /* A power curve, not the row's log2 one. log2 spacing crowds the outer
+       rules together — the first pair either side of the middle took as
+       long to arrive as the last six put together, so the plane crept and
+       then finished in a rush. `d^0.8` across a fixed span spreads the
+       wavefront evenly to the edge instead, and each rule out draws a
+       little quicker than the one before it (`--dur`), so the whole plane
+       closes on the beat rather than trailing at the corners. */
+    rule.style.setProperty('--dl', d === 0 ? '0ms'
+      : Math.round(Math.pow(d / RULES_MID, 0.8) * 660) + 'ms');
+    rule.style.setProperty('--dur', (1350 - d * 34) + 'ms');
     lines.appendChild(rule);
   }
 
@@ -2575,9 +2724,15 @@ window.scrollTo(0, 0);
   const tLine   = tGather + T.gather;
   const tFuse   = tLine + T.line;
   const tPlane  = tFuse + T.fuse;
-  const tOut    = tPlane + T.plane + T.planeH;
-  const tSaid   = tOut + T.said;
-  const tMark   = tSaid + T.markIn;
+  /* 面 is inked, pressed onto the seal's slot and carved into the mark, and
+     only then do the words arrive — the plane *becomes* the logo, and the
+     logo introduces the quote, instead of the plane fading away and the two
+     of them turning up together */
+  const tPress  = tPlane + T.plane + T.planeH;
+  const tInk    = tPress + T.fillIn;
+  const tCarve  = tPress + T.press;
+  const tMark   = tCarve + T.carve;
+  const tSaid   = tMark + T.markIn;
   const tFade   = tSaid + T.hold1;
   const tRise   = tFade + T.fade + T.hold2;
   const tOpen   = tRise + T.rise + T.hold3;
@@ -2592,12 +2747,46 @@ window.scrollTo(0, 0);
     stage.classList.add('opening__stage--fused');
   });
   at(tPlane,  function () { lines.classList.add('is-on'); });
-  at(tOut,    function () { stage.classList.add('opening__stage--out'); });
+  /* i — the press: the plane starts closing in on the seal's footprint */
+  at(tPress,  function () {
+    /* Re-park the mark from the same layout read the block is about to be
+       aimed with. The two used to be measured eight seconds apart — the mark
+       at boot, the block here — so anything that moved the motto in between
+       (the serif landing, a restored scroll position, an image finishing)
+       left them pointing at two different places, and the block came down
+       beside the seal instead of onto it. One read, one answer. */
+    body.style.setProperty('--mark-y', markY().toFixed(2) + 'px');
+    const to = carveTo();
+    /* a bad number here would make the whole `translate` invalid, and an
+       invalid `translate` computes to `none` — which drops the -50% centring
+       with it and lands the block a half-seal down and to the right */
+    if (!isFinite(to.y) || !isFinite(to.x) || !isFinite(to.sy)) return;
+    stage.style.setProperty('--gather-y', to.y.toFixed(2) + 'px');
+    stage.style.setProperty('--carve-x',  to.x.toFixed(4));
+    stage.style.setProperty('--carve-y',  to.sy.toFixed(4));
+    stage.classList.add('opening__stage--carve');
+  });
+  /* ii — and the ink fills in on the way down, once the compression has
+     already begun to close the gaps between the rules. The box is squared
+     off to the block's own span at the same time: the rules sit on a pitch
+     that overflows their masked box by half a pitch top and bottom, and
+     the wipe in beat iii clips against this box, so the two have to
+     agree — the box is centred on the stage point whatever its height, so
+     resizing it mid-press moves nothing. */
+  at(tInk,    function () {
+    lines.style.setProperty('--pitch', RULE_PITCH + 'px');
+    lines.style.height = (RULES * RULE_PITCH) + 'px';
+    lines.classList.add('is-solid');
+  });
+  /* iii — the mark is lit underneath it (no fade: it is the same orange on
+     the same rect, so nothing shows yet) and the block lifts off it,
+     carving the strokes of 陳 out of the solid */
+  at(tCarve,  function () {
+    body.setAttribute('data-intro', 'centre');
+    stage.classList.add('opening__stage--carved');
+  });
+  /* and the words come up around it */
   at(tSaid,   function () { intro.classList.add('opening--said'); });
-
-  /* the seal fades up inside the motto, on the beat between the second
-     quote line and the attribution */
-  at(tMark, function () { body.setAttribute('data-intro', 'centre'); });
   /* only the words go — the seal is not in the overlay, so it is left
      standing on the empty peach panel, already where it needs to be */
   at(tFade, function () { motto.classList.add('opening__motto--out'); });
@@ -2613,8 +2802,40 @@ window.scrollTo(0, 0);
     playLanding();
   });
 
-  /* Nothing skips the intro — neither a key nor a click. It plays once,
-     in full, every time. */
+  /* --- skip ---------------------------------------------------------
+     Only the button skips — not a stray click or key, which is how the
+     sequence used to be cut short by accident.
+
+     What it does NOT do is run the rest of the beats at speed: the mark
+     would fly out of the plate and across the frame to the header, which
+     is the one thing a visitor who has just asked to get on with it does
+     not want to sit through. Instead the frame as it stands dims out, the
+     mark goes with it, and the header is assembled underneath while the
+     peach clears — a cross-fade from wherever the sequence had got to
+     into the finished home page.
+
+     The order is exact: the mark has to be invisible *before* the
+     attribute is dropped, because dropping it hands the logo back its own
+     translate (and style.css's 0.7s transition on it, which `lp-skip`
+     suppresses for the same reason). `lp-skip` is lifted a beat later so
+     the header behaves normally again afterwards. */
+  let skipped = false;
+  function skip() {
+    if (skipped) return;
+    skipped = true;
+    timers.forEach(window.clearTimeout);
+    intro.classList.add('opening--skip');
+    body.classList.add('lp-skip');
+    window.setTimeout(function () {
+      body.removeAttribute('data-intro');
+      body.style.removeProperty('--mark-y');
+      intro.classList.add('opening--out');
+      playLanding();
+      window.setTimeout(function () { body.classList.remove('lp-skip'); }, 120);
+      window.setTimeout(function () { intro.remove(); }, 520);
+    }, 300);
+  }
+  intro.querySelector('.opening__skip').addEventListener('click', skip);
 
   /* keep the parked mark centred if the window is resized mid-intro */
   window.addEventListener('resize', function () {
@@ -2623,6 +2844,24 @@ window.scrollTo(0, 0);
       body.style.setProperty('--mark-y', markY().toFixed(2) + 'px');
     }
   });
+
+  /* …and again when the serif lands. `--mark-y` is measured off the motto,
+     which is set in the serif: the quote is two lines of it, so the slot the
+     mark parks on sits lower once the real face replaces the fallback. The
+     measurement above happens in the same task as the first paint, i.e.
+     before the webfont is in — which parked the mark off the plane the
+     opening presses into it, and the two came apart on screen. Re-measure
+     the moment the fonts resolve; at that point the mark is still hidden
+     (`data-intro='hidden'`, opacity 0, transition none), so nothing moves
+     visibly — it is simply in the right place when it is lit. */
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function () {
+      const state = body.getAttribute('data-intro');
+      if (state === 'centre' || state === 'hidden') {
+        body.style.setProperty('--mark-y', markY().toFixed(2) + 'px');
+      }
+    });
+  }
 })();
 
 

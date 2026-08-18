@@ -11,16 +11,21 @@
        you scroll). Keeps top + bottom chrome consistently white. -->
   <meta name="theme-color" content="#ffffff" />
   <title>陳廷驊基金會</title>
+  <!-- The serif is self-hosted and the opening measures itself against text
+       set in it, so it must not arrive late: preloaded, it is in before the
+       first paint and nothing reflows under the intro. -->
+  <link rel="preload" href="assets/fonts/baskervville-regular.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Fira+Sans:wght@300;400;500&family=Noto+Serif+TC:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@300;400;500&family=Noto+Serif+TC:wght@400;500;700&display=swap" rel="stylesheet" />
   <!-- Shared base (reset, tokens, nav shell, mobile menu, search, cursor) -->
-  <link rel="stylesheet" href="style.css?v=7.7" />
+  <link rel="stylesheet" href="style.css?v=10.3" />
   <!-- Home V3 — Figma "R2 / OPT2_01_Home_01_Desktop" -->
-  <link rel="stylesheet" href="style-home.css?v=7.7" />
+  <link rel="stylesheet" href="style-home.css?v=10.3" />
   <!-- …and released again for anyone without JS, who never gets the intro. -->
   <noscript><style>
     html.lp-boot .nav__logo, html.lp-boot .nav__menu, html.lp-boot .nav__actions,
+    html.lp-boot .nav__search-btn--stacked,
     html.lp-boot .hero-v3__title, html.lp-boot .hero-v3__foot { opacity: 1; }
     html.lp-boot .colourbar--hero { clip-path: none; }
   </style></noscript>
@@ -43,6 +48,17 @@
         <a href="#" class="nav__link" data-mega="about">關於我們</a>
         <a href="#" class="nav__link">聯繫我們</a>
       </nav>
+
+      <!-- R2 12141-53 puts the loupe under the stacked menu, right-aligned
+           with it. It is its own button rather than the one in
+           `.nav__actions` moved across: that group is what the sticky pill
+           is built out of, and an absolutely-placed child of it is at the
+           mercy of the landing translate, which makes it the containing
+           block for as long as it runs. Only ever one of the two is on
+           screen (see style-home.css). -->
+      <button class="nav__search-btn nav__search-btn--stacked" aria-label="Search">
+        <img src="assets/icons/icon-search.svg" alt="" />
+      </button>
 
       <div class="nav__actions">
         <!-- sticky bar only: the seal joins search + hamburger inside the
@@ -256,15 +272,17 @@
             <span class="dots__dot dots__dot--core" style="--x:50.00%; --y:48.29%; --s:3.86%; --o:1; --dl:0ms"></span>
           </div>
           <div class="panel__head">
-            <p class="panel__eyebrow">覺察自己是誰</p>
             <h2 class="panel__title">Being</h2>
           </div>
           <div class="panel__body">
             <p class="panel__lede">
-              透過正念與靜觀練習，連結真實的自己
+              覺察，由此開始。
+            </p>
+            <p class="panel__copy">
+              我們連結真實的自己，從而更清晰地看見足以啟發改變的可能與機遇。
             </p>
             <p class="panel__note">
-              這關乎當下的專注、自我覺察、慈悲，以及內在的身心安康。
+              這關乎認識自己是誰、真正在乎甚麼，以及如何作出最重要的抉擇。
             </p>
           </div>
         </section>
@@ -274,21 +292,17 @@
           <!-- 線 — one dot spreads left/right into a line (script fills the dots) -->
           <div class="panel__dotrow dotrow" data-motion="dotrow" aria-hidden="true"></div>
           <div class="panel__head">
-            <p class="panel__eyebrow">成為更好的自己</p>
             <h2 class="panel__title">Becoming</h2>
           </div>
           <div class="panel__body">
             <p class="panel__lede">
-              透過潛能與使命的展現，連結自身的可能性
+              可能性在這裡成形，長成具意義的貢獻。
             </p>
-            <p class="panel__label">在這裡，人們會發現：</p>
-            <ul class="panel__list">
-              <li>自己的天賦</li>
-              <li>自己的使命</li>
-              <li>自己貢獻社會的能力</li>
-            </ul>
+            <p class="panel__copy">
+              我們透過探索潛能與使命，把自己連結到各種可能，將洞見化為行動，孕育能帶來正面社會影響的想法。
+            </p>
             <p class="panel__note">
-              「可能性」之所以貼切，是因為它連結了此刻的自己與未來的潛能。
+              這關乎我們能成為甚麼，以及作為個人與社會的一員，我們想成為甚麼。
             </p>
           </div>
         </section>
@@ -298,28 +312,34 @@
           <!-- 面 — the line spreads up/down into a plane (script fills the rules) -->
           <div class="panel__lines lines" data-motion="lines" aria-hidden="true"></div>
           <div class="panel__head">
-            <p class="panel__eyebrow">明白自己是更大整體的一部分</p>
             <h2 class="panel__title">Belonging</h2>
           </div>
           <div class="panel__body">
             <p class="panel__lede">
-              透過更緊密的社會連結，連結自己與社群
+              個人的貢獻在這裡匯聚，影響力由此成為集體的力量。
+            </p>
+            <p class="panel__copy">
+              我們透過更緊密的社會連結，把自己連結到社群，培養建立於信任、關懷與共同使命之上的關係。
             </p>
             <p class="panel__note">
-              慈悲在這裡超越個人，成為人與人之間的連結。
+              這關乎在我們身處的更大社群之中，我們是誰，以及我們期望成為誰。
             </p>
-            <p class="panel__question">
-              <strong>於是問題變成</strong>
-              當一群安住當下、懷抱使命、彼此連結的人決定一起創造改變，會發生甚麼事？
-            </p>
-            <p class="panel__note">答案自然地引向社會創新。</p>
           </div>
         </section>
 
         <!-- 4 — Bettering -->
         <section class="panel panel--bettering">
-          <div class="panel__photo" aria-hidden="true">
-            <img src="assets/images/bettering-photo.png" alt="" />
+          <!-- Four frames on the same spot: each one pushes in slowly, and as
+               it reaches the end of its travel the next is cross-faded over
+               it. Plain <img>s stacked by CSS rather than a slider library —
+               the whole behaviour is one class (`is-on`) moved along by
+               script §8.7, and with no script (or reduced motion) the first
+               frame simply stays put. -->
+          <div class="panel__photo" data-slideshow aria-hidden="true">
+            <img class="panel__photo-img" src="assets/images/bettering-1.png" alt="" />
+            <img class="panel__photo-img" src="assets/images/bettering-2.png" alt="" loading="lazy" />
+            <img class="panel__photo-img" src="assets/images/bettering-3.png" alt="" loading="lazy" />
+            <img class="panel__photo-img" src="assets/images/bettering-4.png" alt="" loading="lazy" />
           </div>
           <div class="panel__head">
             <p class="panel__crumbs">
@@ -328,11 +348,11 @@
             <h2 class="panel__title">Bettering</h2>
           </div>
           <div class="panel__body">
-            <p class="panel__lede">攜手共建更美好的世界</p>
+            <p class="panel__lede">攜手共建一個慈悲的社會，我們的方式是：</p>
             <ul class="panel__bullets">
-              <li>以資金與概念驗證資源，支持社會創新者</li>
-              <li>降低社會創效項目的入場門檻</li>
-              <li>推動項目邁向預期目標，締造持久影響</li>
+              <li>以影響力為本</li>
+              <li>可持續</li>
+              <li>具創新性</li>
             </ul>
             <p class="panel__note">
               這與基金會的理念格外契合，因為它著眼於社會的改善，而非商業上的成功。
@@ -357,8 +377,8 @@
             慈悲不只是一種價值，<br />
             更是我們 <span class="news-v3__accent typer"
                                  data-typer
-                                 data-words="Working|Being|Becoming|Belonging|Bettering"
-                                 aria-live="off">Working</span> 的方式
+                                 data-words="同在|生活|投入|連結|同行|創造改變|實踐慈善"
+                                 aria-live="off">同在</span> 的方式
           </h2>
 
           <div class="news-v3__filters" role="tablist" aria-label="Filter news by category">
@@ -485,20 +505,96 @@
 
         <hr class="ventures__rule" />
 
+        <!-- R2 12145-654 — see index.html -->
         <div class="funding">
-          <div class="funding__col">
-            <img src="assets/images/logo-funding.svg" alt="The D. H. Chen Foundation" class="funding__logo" />
-            <p class="funding__text">
-              我們全年接受捐款申請。有意申請者請填妥相關的捐款申請表格、上載所需文件，並預留充足時間以供審核。
-            </p>
-            <a href="#" class="btn-pill">
-              資助申請
-              <span class="btn-pill__arrow" aria-hidden="true"></span>
-            </a>
+          <h2 class="funding__title">與我們同行</h2>
+          <p class="funding__text">
+            我們全年接受捐款申請。有意申請者請填妥相關的捐款申請表格、上載所需文件，並預留充足時間以供審核。
+          </p>
+          <div class="funding__marquee">
+            <!-- Four strips, animated by exactly -50%: as the first half walks
+                 off the left the second half is already standing where it
+                 started, so the loop never shows a seam. Two would not be
+                 enough — one strip is narrower than the row is wide, and the
+                 track has to stay at least a screenful ahead of itself or a
+                 gap opens at the right before the jump.
+                 The spacing rides on the items rather than a flex `gap`: a
+                 gap between strips would not be half the track, and the loop
+                 would drift a little further out of step every cycle.
+
+                 `--s` is the optical size of a mark, and it lives here rather
+                 than in the stylesheet so it travels with the logo it belongs
+                 to — add or drop one and nothing else has to be renumbered.
+                 The plain wordmarks sit at 1; the heavy single-word marks are
+                 dialled down to carry about the same weight of ink as the
+                 six the design was drawn around (measured, not guessed). -->
+            <div class="funding__track">
+              <ul class="funding__partners">
+                <li><img src="assets/images/partners/partner-1.svg" alt="Lane Crawford" /></li>
+                <li><img src="assets/images/partners/partner-2.svg" alt="周生生" /></li>
+                <li><img src="assets/images/partners/partner-3.svg" alt="Emphasis" /></li>
+                <li><img src="assets/images/partners/partner-4.svg" alt="華懋集團" /></li>
+                <li><img src="assets/images/partners/partner-5.svg" alt="海逸酒店" /></li>
+                <li><img src="assets/images/partners/partner-6.svg" alt="香港理工大學" /></li>
+                <li style="--s: .69"><img src="assets/images/partners/partner-7.svg" alt="Siemens" /></li>
+                <li style="--s: .75"><img src="assets/images/partners/partner-8.svg" alt="騰訊" /></li>
+                <li style="--s: .61"><img src="assets/images/partners/partner-9.svg" alt="Uber" /></li>
+                <li style="--s: .78"><img src="assets/images/partners/partner-10.svg" alt="Amazon Pay" /></li>
+                <li style="--s: .52"><img src="assets/images/partners/partner-11.svg" alt="Behance" /></li>
+                <li style="--s: .58"><img src="assets/images/partners/partner-12.svg" alt="Netflix" /></li>
+                <li style="--s: .81"><img src="assets/images/partners/partner-13.svg" alt="Oracle" /></li>
+              </ul>
+              <ul class="funding__partners" aria-hidden="true">
+                <li><img src="assets/images/partners/partner-1.svg" alt="Lane Crawford" /></li>
+                <li><img src="assets/images/partners/partner-2.svg" alt="周生生" /></li>
+                <li><img src="assets/images/partners/partner-3.svg" alt="Emphasis" /></li>
+                <li><img src="assets/images/partners/partner-4.svg" alt="華懋集團" /></li>
+                <li><img src="assets/images/partners/partner-5.svg" alt="海逸酒店" /></li>
+                <li><img src="assets/images/partners/partner-6.svg" alt="香港理工大學" /></li>
+                <li style="--s: .69"><img src="assets/images/partners/partner-7.svg" alt="Siemens" /></li>
+                <li style="--s: .75"><img src="assets/images/partners/partner-8.svg" alt="騰訊" /></li>
+                <li style="--s: .61"><img src="assets/images/partners/partner-9.svg" alt="Uber" /></li>
+                <li style="--s: .78"><img src="assets/images/partners/partner-10.svg" alt="Amazon Pay" /></li>
+                <li style="--s: .52"><img src="assets/images/partners/partner-11.svg" alt="Behance" /></li>
+                <li style="--s: .58"><img src="assets/images/partners/partner-12.svg" alt="Netflix" /></li>
+                <li style="--s: .81"><img src="assets/images/partners/partner-13.svg" alt="Oracle" /></li>
+              </ul>
+              <ul class="funding__partners" aria-hidden="true">
+                <li><img src="assets/images/partners/partner-1.svg" alt="Lane Crawford" /></li>
+                <li><img src="assets/images/partners/partner-2.svg" alt="周生生" /></li>
+                <li><img src="assets/images/partners/partner-3.svg" alt="Emphasis" /></li>
+                <li><img src="assets/images/partners/partner-4.svg" alt="華懋集團" /></li>
+                <li><img src="assets/images/partners/partner-5.svg" alt="海逸酒店" /></li>
+                <li><img src="assets/images/partners/partner-6.svg" alt="香港理工大學" /></li>
+                <li style="--s: .69"><img src="assets/images/partners/partner-7.svg" alt="Siemens" /></li>
+                <li style="--s: .75"><img src="assets/images/partners/partner-8.svg" alt="騰訊" /></li>
+                <li style="--s: .61"><img src="assets/images/partners/partner-9.svg" alt="Uber" /></li>
+                <li style="--s: .78"><img src="assets/images/partners/partner-10.svg" alt="Amazon Pay" /></li>
+                <li style="--s: .52"><img src="assets/images/partners/partner-11.svg" alt="Behance" /></li>
+                <li style="--s: .58"><img src="assets/images/partners/partner-12.svg" alt="Netflix" /></li>
+                <li style="--s: .81"><img src="assets/images/partners/partner-13.svg" alt="Oracle" /></li>
+              </ul>
+              <ul class="funding__partners" aria-hidden="true">
+                <li><img src="assets/images/partners/partner-1.svg" alt="Lane Crawford" /></li>
+                <li><img src="assets/images/partners/partner-2.svg" alt="周生生" /></li>
+                <li><img src="assets/images/partners/partner-3.svg" alt="Emphasis" /></li>
+                <li><img src="assets/images/partners/partner-4.svg" alt="華懋集團" /></li>
+                <li><img src="assets/images/partners/partner-5.svg" alt="海逸酒店" /></li>
+                <li><img src="assets/images/partners/partner-6.svg" alt="香港理工大學" /></li>
+                <li style="--s: .69"><img src="assets/images/partners/partner-7.svg" alt="Siemens" /></li>
+                <li style="--s: .75"><img src="assets/images/partners/partner-8.svg" alt="騰訊" /></li>
+                <li style="--s: .61"><img src="assets/images/partners/partner-9.svg" alt="Uber" /></li>
+                <li style="--s: .78"><img src="assets/images/partners/partner-10.svg" alt="Amazon Pay" /></li>
+                <li style="--s: .52"><img src="assets/images/partners/partner-11.svg" alt="Behance" /></li>
+                <li style="--s: .58"><img src="assets/images/partners/partner-12.svg" alt="Netflix" /></li>
+                <li style="--s: .81"><img src="assets/images/partners/partner-13.svg" alt="Oracle" /></li>
+              </ul>
+            </div>
           </div>
-          <div class="funding__photo">
-            <img src="assets/images/funding-photo.png" alt="" />
-          </div>
+          <a href="#" class="btn-pill funding__cta">
+            資助申請
+            <span class="btn-pill__arrow" aria-hidden="true"></span>
+          </a>
         </div>
 
       </div>
@@ -594,6 +690,6 @@
   </div>
 
   <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
-  <script src="script.js?v=7.7"></script>
+  <script src="script.js?v=10.3"></script>
 </body>
 </html>

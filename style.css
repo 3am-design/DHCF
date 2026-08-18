@@ -6,6 +6,69 @@
    ================================================================ */
 
 /* ----------------------------------------------------------------
+   Serif webfont — Baskervville, self-hosted and metric-matched
+   -----------------------------------------------------------------
+   The design was drawn against macOS's system Baskerville, which does
+   not exist on Windows: the stack fell through to Libre Baskerville
+   there, a much heavier and 28% wider design, so the same page read as
+   two different typefaces depending on the machine.
+
+   Baskervville (two v's, OFL, from Google Fonts) is the ANRT revival of
+   the same Baskerville and is the closest match available as a webfont —
+   but it is still drawn ~10% larger: measured at 150px, the banner's
+   longest line runs 3004px against system Baskerville's 2729, which
+   pushed the headline onto a fourth line and into the description.
+
+   `size-adjust` closes that gap in the font itself rather than by
+   retuning every type size on the site: 91% (2729 ÷ 3004 = 90.9, and the
+   ratio holds across strings, so the two faces differ by a near-uniform
+   scale) makes Baskervville set to the same measure as the Baskerville
+   the design was drawn in. Every existing size, line break and max-width
+   therefore still means what it meant — and now means it on every
+   platform, because nothing resolves to a system font any more.
+
+   Self-hosted rather than linked: the file is what guarantees the
+   metrics, and `size-adjust` cannot be applied to Google's own
+   @font-face rules anyway. Latin + latin-ext subsets, as served.
+   ---------------------------------------------------------------- */
+@font-face {
+  font-family: 'Baskervville';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  size-adjust: 91%;
+  src: url('assets/fonts/baskervville-regular.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Baskervville';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  size-adjust: 91%;
+  src: url('assets/fonts/baskervville-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Baskervville';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  size-adjust: 91%;
+  src: url('assets/fonts/baskervville-italic.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Baskervville';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  size-adjust: 91%;
+  src: url('assets/fonts/baskervville-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* ----------------------------------------------------------------
    CSS Variables
    ---------------------------------------------------------------- */
 :root {
@@ -15,12 +78,14 @@
   --c-black:   #000000;
   --c-orange:  #ff6900;
 
-  /* Fonts — Figma uses system Baskerville; Libre Baskerville is the web fallback.
-     Latin glyphs render in Baskerville; CJK glyphs fall through to a real Song
-     serif — Noto Serif TC webfont (loaded on the TC pages) first, then each
-     platform's system Song (iOS Songti, Android/desktop Noto/Source Han, Windows
-     SimSun/PMingLiU). Without these, iOS maps generic `serif` to PingFang (sans). */
-  --f-serif: Baskerville, 'Libre Baskerville', Georgia, 'Noto Serif TC', 'Noto Serif CJK TC', 'Source Han Serif TC', 'Songti TC', 'Songti SC', 'PMingLiU', 'MingLiU', SimSun, serif;
+  /* Fonts — Latin glyphs render in the self-hosted, metric-matched
+     Baskervville above (which is why it leads the stack and the macOS system
+     Baskerville only backs it up, for a failed font load); CJK glyphs fall
+     through to a real Song serif — Noto Serif TC webfont (loaded on the TC
+     pages) first, then each platform's system Song (iOS Songti,
+     Android/desktop Noto/Source Han, Windows SimSun/PMingLiU). Without these,
+     iOS maps generic `serif` to PingFang (sans). */
+  --f-serif: Baskervville, Baskerville, Georgia, 'Noto Serif TC', 'Noto Serif CJK TC', 'Source Han Serif TC', 'Songti TC', 'Songti SC', 'PMingLiU', 'MingLiU', SimSun, serif;
   --f-sans:  'Fira Sans', Arial, sans-serif;
 
   /* Grid — desktop */
@@ -243,8 +308,11 @@ body.has-custom-cursor .cursor { display: flex; }
    with the .cursor-dark hook (see script.js). */
 body.search-open .cursor,
 .cursor--on-dark { border-color: var(--c-white); }
-body.search-open .cursor:not(.cursor--magnet),
-.cursor--on-dark:not(.cursor--magnet) { background: var(--c-white); }
+body.search-open .cursor:not(.cursor--magnet):not(.cursor--ring),
+.cursor--on-dark:not(.cursor--magnet):not(.cursor--ring) { background: var(--c-white); }
+/* (the ring's centre dot is whitened further down, next to where it is
+   drawn — stated here it tied with `.cursor::after` and lost on order,
+   which left an orange dot inside a white ring on the orange menu) */
 
 .cursor__label {
   position: absolute;
@@ -309,7 +377,36 @@ body.search-open .cursor:not(.cursor--magnet),
 }
 .nav__hamburger img { transition: filter var(--ease); }
 
-/* nav links / 中文 / search use plain colour hovers (see NAVIGATION) */
+/* nav links / 中文 / search use plain colour hovers (see NAVIGATION) — with
+   one addition: over a menu link the solid dot opens into a ring with a small
+   dot held at its centre, so the pointer answers the hover as well as the type
+   does. The centre dot is a pseudo-element rather than markup, so every page
+   gets it from the one `.cursor` div they all already carry.
+   Size, not `scale`: the cursor is positioned by a scripted `transform` (see
+   the note on `--absorb`), so the width/height transition is what animates the
+   opening and the dot stays exactly under the pointer while it does. */
+.cursor::after {
+  content: '';
+  position: absolute;
+  width: 5.5px;
+  height: 5.5px;
+  border-radius: 50%;
+  background: var(--c-orange);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+.cursor--ring {
+  width: 26px;
+  height: 26px;
+  background: transparent;
+  border-width: 1.5px;
+}
+.cursor--ring::after { opacity: 1; }
+/* on an orange ground the whole cursor knocks out white — the ring's stroke
+   (up with the other on-dark rules) and the dot inside it, here, after the
+   dot's own orange so it actually wins */
+body.search-open .cursor::after,
+.cursor--on-dark::after { background: var(--c-white); }
 
 /* solid states over the news slider */
 .cursor--discover,
@@ -371,8 +468,12 @@ body.lp-h2 .hero__scroll       { opacity: 0; translate: 0 22px; }
 .nav__logo    { transition: opacity 0.7s ease,        translate 0.7s ease; }
 .nav__menu    { transition: opacity 0.7s ease 0.12s,  translate 0.7s ease 0.12s; }
 .nav__actions { transition: opacity 0.7s ease 0.24s,  translate 0.7s ease 0.24s; }
+/* the stacked loupe belongs to the menu it sits under, so it waits with it
+   rather than standing on the peach on its own while the opening plays */
+.nav__search-btn--stacked { transition: opacity 0.7s ease 0.12s, translate 0.7s ease 0.12s; }
 body.lp-nav .nav__logo,
 body.lp-nav .nav__menu,
+body.lp-nav .nav__search-btn--stacked,
 body.lp-nav .nav__actions { opacity: 0; translate: 0 -18px; }
 
 /* ----------------------------------------------------------------
@@ -757,9 +858,12 @@ button.nav__mobile-link {
 /* top bar mirrors .nav__inner exactly, so the logo lines up with the nav logo
    and the close sits on the same right-hand grid margin */
 .search-overlay__bar {
-  /* Mirrors the nav exactly: three tracks with the logo dead centre, and
-     the close sitting on the left margin — the same spot the search button
-     it replaces occupies, so the two swap in place. */
+  /* Mirrors the nav exactly: three tracks with the logo dead centre, and the
+     close on the right margin, where 8465-2 draws it (63px at x1807 / y24 —
+     the same 50px margin everything else in the bar keeps). It used to sit
+     on the left, to swap in place with the search button; the button has
+     since moved under the stacked menu, so the two no longer trade places
+     and the close simply takes the corner the design gives it. */
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
@@ -769,7 +873,7 @@ button.nav__mobile-link {
   padding: 0 var(--gm);
 }
 .search-overlay__logo  { grid-column: 2; }
-.search-overlay__close { grid-column: 1; grid-row: 1; justify-self: start; }
+.search-overlay__close { grid-column: 3; grid-row: 1; justify-self: end; }
 
 /* On the V3 home the nav is not a 104px centred bar — it is top-padded with
    the logo at y 32 — so the overlay bar has to follow, or the logo jumps as
@@ -780,15 +884,11 @@ body.home-v3 .search-overlay__bar {
   padding-top: 32px;
   padding-bottom: 24px;
 }
-/* The close is the same circle the search button opens on hover — same
-   67.6px across, and pulled back by half the difference so it stays
-   centred on the 40px button it replaces. */
+/* 8465-2 draws it as a 63px ring at y24, and the bar's own inset is 32 —
+   so it rides 8px up out of that to land on the design's line. */
 body.home-v3 .search-overlay__close {
   align-self: start;
-  width: 67.6px;
-  height: 67.6px;
-  margin-top: -13.8px;
-  margin-left: -13.8px;
+  margin-top: -8px;
   border-color: rgba(255, 255, 255, 0.55);
 }
 body.home-v3 .search-overlay__close span { width: 22px; }
@@ -3444,7 +3544,15 @@ body.home-v3 .search-overlay__close span { width: 22px; }
    is consistent on a Chinese page. English pages keep Baskerville
    first (the base --f-serif), untouched. */
 html[lang="zh-Hant"] {
-  --f-serif: 'Noto Serif TC', 'Songti TC', 'Songti SC', 'Source Han Serif TC', 'Noto Serif CJK TC', 'PMingLiU', 'MingLiU', SimSun, Baskerville, 'Libre Baskerville', Georgia, serif;
+  --f-serif: 'Noto Serif TC', 'Songti TC', 'Songti SC', 'Source Han Serif TC', 'Noto Serif CJK TC', 'PMingLiU', 'MingLiU', SimSun, Baskervville, Baskerville, Georgia, serif;
+  /* The same gap on the sans side, and it matters now that the body copy on
+     these pages is Chinese: `--f-sans` is Fira Sans, which has no CJK at
+     all, so every Chinese paragraph fell through to whatever the browser
+     picked by itself — PingFang on a Mac, JhengHei on Windows, something
+     else again on Android. Naming each platform's own CJK sans keeps the
+     fallback a decision rather than an accident. Fira Sans stays in front
+     for the Latin runs (numerals, "D'Ventures"), as the serif does. */
+  --f-sans: 'Fira Sans', 'PingFang TC', 'PingFang HK', 'Noto Sans TC', 'Source Han Sans TC', 'Microsoft JhengHei', 'Heiti TC', Arial, sans-serif;
 }
 
 /* ============================================================
