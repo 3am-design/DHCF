@@ -10,9 +10,14 @@ window.scrollTo(0, 0);
 
 /* ----------------------------------------------------------------
    0a. Page zoom — measured, not read.
-   Between 768 and 1800px `body` carries `zoom: .9`, and anything that
-   converts a measured rect back into a value to be *written* on a zoomed
-   element (a translate, a width) has to divide that zoom out again.
+   Above 768px `body` carries `zoom: var(--zoom)` — 0.9 for the 1920 design
+   below 1800px, times a further step down on a short window — and anything
+   that converts a measured rect back into a value to be *written* on a
+   zoomed element (a translate, a width) has to divide that zoom out again.
+
+   Nothing here needs to know the ladder: the function measures whatever the
+   engine ended up applying, so adding or retuning a step in the CSS moves
+   every consumer of it without a line changing on this side.
 
    It is measured rather than taken from `getComputedStyle(body).zoom`
    because that string is not something every engine agrees on: Safari

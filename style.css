@@ -72,6 +72,47 @@
    CSS Variables
    ---------------------------------------------------------------- */
 :root {
+  /* ── Page zoom ───────────────────────────────────────────────────
+     The whole page is scaled like browser zoom, on two independent
+     axes, and `--zoom` is their product — the one number anything that
+     has to undo the scaling should divide by.
+
+       --zoom-w  the 1920 design reads ~10% too large below 1800px.
+                 This is a *layout* correction: things that are sized
+                 off the design canvas rather than off the window (the
+                 banner headline) divide it back out so they keep the
+                 proportion the design gave them.
+
+       --zoom-h  short windows. A 1920 × 1000 design on a laptop that
+                 only offers ~700px of viewport lands with everything
+                 correct-but-oversized — the type is right for the
+                 width and much too big for the height. Stepping the
+                 whole page down is what a reader does by hand with
+                 ⌘− , so the page does it for them. Nothing divides
+                 this one back out: shrinking IS the point.
+
+     Anything that must fill the window (a 100vh banner) divides by the
+     product, because viewport units are measured on the real window and
+     then scaled with everything else.
+
+     Tuning: the ladder below is the only place to touch. `--zoom-h` is
+     multiplied on top of `--zoom-w`, so .8 here on a 1440px laptop is
+     0.9 × 0.8 = 0.72 — the same rendering as pressing ⌘− once on a page
+     that was already at 90%. */
+  --zoom-w: 1;
+  --zoom-h: 1;
+  --zoom: calc(var(--zoom-w) * var(--zoom-h));
+
+  /* The design canvas, in the zoomed page's own coordinates. Every section
+     that caps itself at the 1920 drawing and centres the remainder measures
+     from here rather than writing 1920 directly, because a zoomed body lays
+     out 1/zoom wider than the window: a literal 1920 stops short of a 1920
+     window and leaves a gap down both sides — a hair of one at 0.9, an
+     obvious pair of them once the short-window ladder goes lower. Dividing
+     the zoom out puts the cap back where it is drawn, so the canvas fills
+     any window up to 1920 *real* pixels and only starts centring past it. */
+  --canvas: calc(1920px / var(--zoom));
+
   /* Colours */
   --c-bg:      #fff2e9;
   --c-white:   #ffffff;
@@ -157,7 +198,7 @@ ul   { list-style: none; }
 }
 #layout-grid.layout-grid--on { display: block; }
 .layout-grid__inner {
-  max-width: 1920px;
+  max-width: var(--canvas);
   height: 100%;
   margin: 0 auto;
   padding: 0 var(--gm);
@@ -519,7 +560,7 @@ body.lp-nav .nav__actions { opacity: 0; translate: 0 -18px; }
   align-items: center;
   height: 104px;                        /* 74px logo + 15px gap top & bottom */
   padding: 0 var(--gm);
-  max-width: 1920px;
+  max-width: var(--canvas);
   margin: 0 auto;
   transition: height var(--ease);
 }
@@ -868,7 +909,7 @@ button.nav__mobile-link {
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   height: 104px;
-  max-width: 1920px;
+  max-width: var(--canvas);
   margin: 0 auto;
   padding: 0 var(--gm);
 }
@@ -1023,8 +1064,13 @@ body.home-v3 .search-overlay__close span { width: 22px; }
    ================================================================ */
 .hero {
   position: relative;
-  /* first screen fills the browser height, clamped 600–1200px */
-  height: clamp(600px, 100vh, 1200px);
+  /* first screen fills the browser height, clamped 600–1200px.
+     `vh` is the real window while the page around it is zoomed, so the
+     height is divided back out — otherwise the banner covers only
+     `--zoom` of the screen. `dvh` is the same number with the mobile
+     browser's collapsing toolbars taken into account. */
+  height: clamp(600px, calc(100vh / var(--zoom)), 1200px);
+  height: clamp(600px, calc(100dvh / var(--zoom)), 1200px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1251,7 +1297,7 @@ body.home-v3 .search-overlay__close span { width: 22px; }
   padding: 84px var(--gm) 60px;
   column-gap: var(--gg);
   row-gap: 40px;   /* breathing room between headline and video/bullets */
-  max-width: 1920px;
+  max-width: var(--canvas);
   margin: 0 auto;
   position: relative;
   z-index: 1;
@@ -1326,7 +1372,7 @@ body.home-v3 .search-overlay__close span { width: 22px; }
   grid-template-columns: minmax(0, 620fr) minmax(0, 1200fr);
   align-items: center;   /* vertically centre the text block against the circles */
   padding: 60px var(--gm) 80px;
-  max-width: 1920px;
+  max-width: var(--canvas);
   margin: 0 auto;
   overflow: hidden;  /* circles overflow right — clip here */
   /* Fluid circle diameter: 437px at 1920, scales down with viewport so the
@@ -1489,7 +1535,7 @@ body.home-v3 .search-overlay__close span { width: 22px; }
   padding: 0 var(--gm);
   position: relative;
   z-index: 1;
-  max-width: 1920px;
+  max-width: var(--canvas);
   margin: 0 auto;
 }
 
@@ -1582,7 +1628,7 @@ body.home-v3 .search-overlay__close span { width: 22px; }
   position: relative;
   z-index: 1;          /* keep cards/bubbles above the footer wave line */
   padding-top: 64px;
-  max-width: 1920px;
+  max-width: var(--canvas);
   margin: 0 auto;
 }
 
@@ -1931,7 +1977,7 @@ body.home-v3 .search-overlay__close span { width: 22px; }
   grid-template-columns: 1fr 310px 270px;
   align-items: start;
   padding: 48px var(--gm) 0;
-  max-width: 1920px;
+  max-width: var(--canvas);
   margin: 0 auto;
 }
 
@@ -1992,7 +2038,7 @@ body.home-v3 .search-overlay__close span { width: 22px; }
 .footer__copyright {
   position: relative;
   z-index: 1;
-  max-width: 1920px;
+  max-width: var(--canvas);
   margin: 0 auto;
   padding: 100px var(--gm) 56px;
 }
@@ -2029,16 +2075,43 @@ body.home-v3 .search-overlay__close span { width: 22px; }
 
 
 /* ================================================================
-   RESPONSIVE — below 1800px the 1920 design reads ~10% too large,
-   so scale the whole page to 90% (like browser zoom). Mobile keeps
-   its own dedicated layout.
+   RESPONSIVE — page zoom. Two ladders, one `zoom`.
+
+   Mobile keeps its own dedicated layout and is left at 1:1 throughout;
+   everything here starts at 768. `--zoom` is 1 unless a ladder below
+   moves it, so this rule is a no-op on any window neither ladder
+   claims. See the note on `:root` for what the two axes mean.
    ================================================================ */
-@media (min-width: 768px) and (max-width: 1800px) {
-  body { zoom: 0.9; }
-  /* 100vh inside a zoomed page shrinks too — compensate so the
-     landing still fills the browser height */
-  .hero { height: clamp(600px, calc(100vh / 0.9), 1200px); }
+@media (min-width: 768px) {
+  body { zoom: var(--zoom); }
 }
+
+/* ── Width: below 1800 the 1920 design reads ~10% too large ────── */
+@media (min-width: 768px) and (max-width: 1800px) {
+  :root { --zoom-w: 0.9; }
+}
+
+/* ── Height: short windows ──────────────────────────────────────
+   The case this was written for is a laptop — a ThinkBook-class 16:10
+   panel where the browser's own chrome leaves ~700px of page. The
+   design is 1920 × 1000: sized on width alone every heading is right
+   and every one of them is too big, because there is a third of the
+   height missing and nothing in the layout knows it.
+
+   1280 rather than 1024 is the floor on purpose — 1024 × 768 is an iPad
+   in landscape, which has its own breakpoints tuned a few hundred lines
+   down and should not also be zoomed. Above 1800 the ladder still
+   applies: a wide-and-short window (a dragged-down window on a big
+   display) has exactly the same problem.
+
+   Four steps rather than one so that dragging a window down walks the
+   page there instead of dropping it. Floors at .75 — past that the type
+   stops being small and starts being unreadable, and the answer is a
+   different layout, not more zoom. */
+@media (min-width: 1280px) and (max-height: 900px) { :root { --zoom-h: 0.92; } }
+@media (min-width: 1280px) and (max-height: 820px) { :root { --zoom-h: 0.86; } }
+@media (min-width: 1280px) and (max-height: 740px) { :root { --zoom-h: 0.80; } }
+@media (min-width: 1280px) and (max-height: 660px) { :root { --zoom-h: 0.75; } }
 
 
 /* ================================================================
@@ -2447,14 +2520,14 @@ body.home-v3 .search-overlay__close span { width: 22px; }
 
 .listing {
   position: relative;
-  max-width: 1920px;
+  max-width: var(--canvas);
   margin: 0 auto;
   padding: 140px var(--gm) 125px;
 }
 
 /* background decor — soft orange/white glows + a faint sweeping line.
-   inset:0 (not 100vw) on purpose: the body has zoom:0.9 below 1800px and a
-   100vw box gets scaled to ~90% width, which shifts/jumps on resize. The body
+   inset:0 (not 100vw) on purpose: the body carries `zoom: var(--zoom)` above
+   768px and a 100vw box gets scaled with it, which shifts/jumps on resize. The body
    peach already covers the edges and the footer fade is full-width, so the
    decor only needs to span the (full-width below 1920) listing. */
 .listing__decor {
@@ -2474,9 +2547,13 @@ body.home-v3 .search-overlay__close span { width: 22px; }
   /* start ~100px below the top of the first card row (grid top ≈ 394px) */
   top: 455px;
   /* full-bleed across the viewport (over-sized so neither zoom state nor a
-     >1920 viewport leaves a side gap); body overflow-x:clip trims the excess */
+     >1920 viewport leaves a side gap); body overflow-x:clip trims the excess.
+     Divided by the zoom because that is the whole point of the over-size: a
+     zoomed body lays out 1/zoom wider than the window, so a fixed 116vw that
+     covered the 0.9 state left a bare strip once the short-window ladder took
+     it lower. */
   left: 50%;
-  width: 116vw;
+  width: calc(116vw / var(--zoom));
   transform: translateX(-50%);
   /* DEFINITE height — height:auto / aspect-ratio let preserveAspectRatio="none"
      collapse the svg to 0px (invisible flat line) in some browsers. */
@@ -2876,7 +2953,7 @@ body.home-v3 .search-overlay__close span { width: 22px; }
    ================================================================ */
 .article {
   position: relative;
-  max-width: 1920px;
+  max-width: var(--canvas);
   margin: 0 auto;
   padding: 140px var(--gm) 120px;
 }

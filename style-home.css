@@ -84,7 +84,7 @@ body.home-v3 {
 }
 
 .wrap {
-  max-width: 1920px;
+  max-width: var(--canvas);
   margin: 0 auto;
   padding: 0 var(--gm);
 }
@@ -320,16 +320,24 @@ body.home-v3 {
      `--nav-overhang` is exactly that gap: half of whatever the window has
      over 1920, and zero below it, so the card's right edge lands on the
      content box's right edge at every width. It resolves against `.nav`,
-     which is this card's containing block. */
-  --nav-overhang: max(0px, calc((100% - 1920px) / 2));
+     which is this card's containing block.
+
+     `--canvas`, not a literal 1920, because `.nav` is inside a zoomed body
+     and therefore lays out 1/zoom wider than the window: measured against
+     the literal, a 1920 window read as 461px of overhang and pushed the
+     card 184px clear of the right edge — out from under the pill and onto
+     the banner headline, which it then clipped. `--canvas` is the same
+     1920 in the coordinates `.nav` is actually measured in, so the overhang
+     is zero up to a real 1920 window, as it reads. */
+  --nav-overhang: max(0px, calc((100% - var(--canvas)) / 2));
   right: var(--nav-overhang);
   width: 530px;
   /* 530 × the full frame height (it was a 724px card), and white — pure
      white, against the page's slightly warm `--c-panel`, which is what
      keeps it reading as a card over the layout rather than merging into
      whichever panel it happens to be covering. */
-  height: 100vh;
-  height: 100svh;
+  height: calc(100vh / var(--zoom));
+  height: calc(100svh / var(--zoom));
   background: var(--c-white);
   overflow: hidden;            /* clips the line-art that bleeds off the left */
   /* Below the bar, above the page. A negative z-index would also paint it
@@ -536,15 +544,20 @@ body.home-v3 {
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  min-height: 100svh;
+  /* `svh` is the real window and the banner is inside a zoomed body, so
+     the height is divided back out — without it the colour bar closes the
+     frame `--zoom` of the way down the screen instead of on its edge.
+     Unconditional (rather than living in the width media query it used to)
+     because the short-window ladder puts a zoom on wide screens too. */
+  min-height: calc(100vh / var(--zoom));
+  min-height: calc(100svh / var(--zoom));
   /* every other section sits inside `.wrap`, which caps the design at its
      1920 canvas and centres the remainder. The banner is not wrapped — it
      has to own the full-screen height — so it carries the same cap itself,
      otherwise the headline, description, lockup and colour bar all run out
      to the window edges above 1920 while the rest of the page stays on the
      grid. */
-  max-width: 1920px;
+  max-width: var(--canvas);
   margin: 0 auto;
   /* The inset gives height back on a short window — but never below 130,
      which is what clears the nav (the logo's own box ends at 106) with air
@@ -2233,19 +2246,19 @@ body.home-v3[data-intro='open'] .nav__logo {
        the way down to the phone breakpoint, where there is no longer a
        column to put a graphic in and it moves under the copy instead
 
-   NB `style.css` scales the whole page with `body { zoom: .9 }` between
-   768 and 1800px, so an iPad's 1024px viewport lays out at ~1138px.
+   NB `style.css` scales the whole page with `body { zoom: var(--zoom) }`
+   above 768px — 0.9 between 768 and 1800, times a further step down on a
+   short window — so an iPad's 1024px viewport lays out at ~1138px.
    Media queries still fire on the real viewport width — the numbers
    below are device widths, not layout widths.
    ================================================================ */
 
-/* Viewport units shrink with that zoom, so a plain 100svh banner only
-   covers 90% of the window — divide it back out, exactly as the legacy
-   `.hero` already does. */
+/* The banner's full-screen height is corrected on `.hero-v3` itself now
+   (it has to be, because the short-window ladder zooms above 1800 too).
+   What is left here is the width correction, which belongs to this range
+   alone. */
 @media (min-width: 768px) and (max-width: 1800px) {
   .hero-v3 {
-    min-height: calc(100vh / 0.9);
-    min-height: calc(100svh / 0.9);
     /* The banner headline is the one place the 0.9 read as *smaller type*
        rather than a tighter layout: 7.81vw of the window became 7.03, so
        every screen under 1800 wore a headline a tenth down on the design.
@@ -2259,10 +2272,19 @@ body.home-v3[data-intro='open'] .nav__logo {
        1000px the first line is wide enough to reach them, so it starts
        below the stack rather than through it. 184 at the top of the range
        hands over to the 8.18vw above 1800 with no step. */
-    /* = 44 / 7.81 / 150 ÷ 0.9, and the 15vh height cap divided out with
-       them (15 ÷ 0.9 = 16.67) — vh is real viewport height, so inside the
-       zoom it needs the same correction as everything else here. */
-    --hero-giant: clamp(48.9px, min(8.68vw, 14.44vh), 166.7px);
+    /* = the `:root` banner size ÷ `--zoom-w`, the 13vh height cap divided
+       out with it — vh is real viewport height, so inside the zoom it needs
+       the same correction as everything else here.
+       Written as the division rather than the products it used to be
+       (48.9 / 8.68 / 14.44 / 166.7, all of them 0.9 baked in) so that only
+       `--zoom-w` moves, and only in one place. NB it is deliberately not
+       `--zoom`: the short-window half of the zoom is meant to take the
+       banner down with the rest of the page. */
+    --hero-giant: clamp(
+      calc(44px / var(--zoom-w)),
+      min(calc(7.81vw / var(--zoom-w)), calc(13vh / var(--zoom-w))),
+      calc(150px / var(--zoom-w))
+    );
     /* 168 is what clears the stacked WORK · IMPACT · ABOUT · CONNECT on a
        narrow window — a width problem, so it stays a width number. The vh
        ceiling above it hands height back when the window is short, and the
@@ -2270,13 +2292,22 @@ body.home-v3[data-intro='open'] .nav__logo {
        stops that from pulling the line into the logo. */
     padding-top: max(144px, min(clamp(168px, 9.6vw, 184px), 17.8vh));
   }
-  /* Same correction for the opening's scrollbar nudge: `html`'s padding
-     is outside the zoom and renders at face value, while a length written
-     inside the overlay is scaled to 0.9 of it. Without dividing it back
-     out the words land ~0.8px shy of the seal. */
+}
+
+/* Same correction for the opening's scrollbar nudge: `html`'s padding is
+   outside the zoom and renders at face value, while a length written inside
+   the overlay is scaled by `--zoom`. Without dividing it back out the words
+   land ~0.8px shy of the seal.
+   Out of the *max-width* half of the query it used to sit in, because the
+   short-window ladder zooms above 1800 as well — but still gated at 768:
+   below that the nav is fixed like the overlay, the two already agree, and
+   setting `--x-mid` at all would push the words off centre (see the note
+   where the uncorrected pair is set). At `--zoom: 1` this is exactly that
+   uncorrected pair. */
+@media (min-width: 768px) {
   .opening {
-    --x-mid: calc(50% - var(--sbw, 0px) / 2 / 0.9);
-    --x-inset: calc(var(--sbw, 0px) / 0.9);
+    --x-mid: calc(50% - var(--sbw, 0px) / 2 / var(--zoom));
+    --x-inset: calc(var(--sbw, 0px) / var(--zoom));
   }
 }
 
@@ -3020,11 +3051,11 @@ html[lang="zh-Hant"] {
    content at 1920), and 1797 sits inside them. */
 html[lang="zh-Hant"] .hero-v3__title { max-width: none; }
 
-/* Between 768 and 1800 `body` carries `zoom: .9`, and §RESPONSIVE divides
-   the banner size back out of it on `.hero-v3` — which sits closer to the
+/* Between 768 and 1800 `--zoom-w` is 0.9, and §RESPONSIVE divides the
+   banner size back out of it on `.hero-v3` — which sits closer to the
    title than the `html` rule above and therefore wins outright, putting
-   the English 166.7px cap back on the Chinese banner. The same correction,
-   with the Chinese numbers: 111.1 is the 100 cap ÷ 0.9, 35.6 the 32 floor.
+   the English cap back on the Chinese banner. The same correction, with
+   the Chinese numbers: a 100px cap and a 32px floor, each over `--zoom-w`.
 
    5.6vw rather than the 5.78 that would make the visual size identical
    across the 1800 boundary: at 5.78 the two lines only fit on one line
@@ -3034,7 +3065,7 @@ html[lang="zh-Hant"] .hero-v3__title { max-width: none; }
    its comma, as it does on a phone. */
 @media (min-width: 768px) and (max-width: 1800px) {
   html[lang="zh-Hant"] .hero-v3 {
-    --hero-giant: clamp(35.6px, 5.6vw, 111.1px);
+    --hero-giant: clamp(calc(32px / var(--zoom-w)), 5.6vw, calc(100px / var(--zoom-w)));
   }
 }
 /* Each `.hw` is now one clause (script §12's `cjkUnits`), and this is what
